@@ -55,9 +55,20 @@ echo ""
 </INSTALL>
 
 <REMOVE>
-removepkg &name;
+rm -f /usr/local/emhttp/plugins/&name;/EmbyStreams.page
+
+rm -f /usr/local/emhttp/plugins/&name;/EmbyStreamsSettings.page
+
+rm -f /usr/local/emhttp/plugins/&name;/embystreams_api.php
+rm -f /usr/local/emhttp/plugins/&name;/emby.png
+
 rm -rf /usr/local/emhttp/plugins/&name;
-echo "&name; has been removed"
+
+rm -f /boot/config/plugins/&name;.plg
+
+echo "----------------------------------------------------"
+echo " &name; has been uninstalled."
+echo "----------------------------------------------------"
 </REMOVE>
 
 </PLUGIN>
