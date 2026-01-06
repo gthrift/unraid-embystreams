@@ -72,7 +72,8 @@ if (empty($active_streams)) {
         $tooltip = "$status_text ($play_method)";
 
         // -- HTML Output --
-        // NOTICE: Removed 'w36' and 'w18' classes to prevent Unraid override
+        // CRITICAL CHANGE: Removed 'w36' and 'w18' classes. 
+        // Only 'es-*' classes remain.
         echo "<div class='es-row'>";
         
         // Name
