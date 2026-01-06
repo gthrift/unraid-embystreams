@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "embystreams">
 <!ENTITY author    "gthrift">
-<!ENTITY version   "2024.01.29">
+<!ENTITY version   "2026.01.06b">
 <!ENTITY launch    "Settings/EmbyStreamsSettings">
 <!ENTITY gitURL    "https://raw.githubusercontent.com/gthrift/unraid-embystreams/master">
 <!ENTITY pluginURL "&gitURL;/embystreams.plg">
@@ -13,11 +13,15 @@
 <PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&pluginURL;" icon="emby.png">
 
 <CHANGES>
-###2024.01.29
+###2026.01.06b
+- Added transcode status to widget.
+- Added link to Emby server to widget.
+
+###2026.01.06a
 - Added toggle logic to Post-Install to respect 'Display Widget' settings.
 - Aligned structure with PlexStreams.
 
-###2024.01.28
+###2026.01.06
 - Initial release structure.
 </CHANGES>
 
