@@ -23,7 +23,7 @@ Cond="parse_ini_file('/boot/config/plugins/embystreams/embystreams.cfg')['DISPLA
         display: flex; 
         align-items: center; 
         width: 100%;
-        box-sizing: border-box; /* Ensures padding doesn't break width */
+        box-sizing: border-box;
     }
     
     .es-row { 
@@ -33,29 +33,56 @@ Cond="parse_ini_file('/boot/config/plugins/embystreams/embystreams.cfg')['DISPLA
     .es-row:last-child { border-bottom: none; }
     .es-transcode { font-size: 10px; opacity: 0.7; margin-left: 5px; }
 
-    /* --- MOBILE RESPONSIVE RULES (Max Width 600px) --- */
+    /* --- DESKTOP LAYOUT (Default) --- */
+    /* This fixes the crowding and fills the white space */
+    
+    /* 1. Name: 38% (Takes the bulk of space) */
+    .es-name { 
+        width: 38%; 
+    }
+
+    /* 2. Device: 22% (Centered) - Slightly wider to prevent text cut-off */
+    .es-device { 
+        width: 22%; 
+        text-align: center; 
+    }
+
+    /* 3. User: 20% (Centered) - Centers text to shift it away from Device */
+    .es-user { 
+        width: 20%; 
+        text-align: center; 
+    }
+
+    /* 4. State: 20% (Right Aligned) - Pushed to the far right */
+    .es-state { 
+        width: 20%; 
+        text-align: right; 
+    }
+
+
+    /* --- MOBILE OVERRIDES (Max Width 600px) --- */
     @media only screen and (max-width: 600px) {
         
-        /* 1. Hide Device and User Columns */
+        /* Hide Device and User Columns */
         .es-device, .es-user { 
             display: none !important; 
         }
         
-        /* 2. NAME Column: FORCE it to fill the screen */
+        /* NAME Column: Fill available space */
         .es-name { 
-            width: auto !important;     /* Override Unraid's 36% */
-            flex: 1 1 auto !important;  /* Grow to fill empty space */
-            min-width: 0;               /* Allow text truncation */
+            width: auto !important;     
+            flex: 1 1 auto !important;  
+            min-width: 0;               
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
         
-        /* 3. STATE Column: Push to the right */
+        /* STATE Column: Compact on right */
         .es-state { 
-            width: auto !important;     /* Override Unraid's 18% */
-            flex: 0 0 auto !important;  /* Don't grow, don't shrink */
-            margin-left: auto;          /* Push to far right edge */
+            width: auto !important;    
+            flex: 0 0 auto !important;  
+            margin-left: auto;          
             text-align: right;
             padding-left: 10px;
         }
@@ -93,10 +120,10 @@ $mytiles[$plugin]['column1'] = <<<EOT
   <tr>
     <td>            
         <div class="es-header-row">
-            <span class="w36 es-name">_(Name)_</span>
-            <span class="w18 es-device" align="center">_(Device)_</span>
-            <span class="w18 es-user">_(User)_</span>
-            <span class="w18 es-state" align="right">_(State)_</span>
+            <span class="es-name">_(Name)_</span>
+            <span class="es-device">_(Device)_</span>
+            <span class="es-user">_(User)_</span>
+            <span class="es-state">_(State)_</span>
         </div>
     </td>
   </tr>
