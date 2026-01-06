@@ -1,6 +1,13 @@
+
 # Emby Streams Widget for Unraid
 
 Emby Streams is a lightweight Unraid plugin that adds a real-time dashboard widget and a management interface to monitor active Emby sessions directly from your Unraid WebGUI.
+
+ **BETA RELEASE**
+ 
+This plugin is currently in active development (Beta). Bugs may occur, and features may change. 
+Please note that this plugin is **not** currently available in the Unraid Community Applications (CA) store. You must install it manually via the PLG URL provided below.
+
 
 ## Disclaimer
 
