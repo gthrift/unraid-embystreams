@@ -16,14 +16,14 @@
 ###2026.01.06.4
 - Unraid plugin style guide fixes
 
-###2026.01.063
+###2026.01.06c
 - Bug fixes
 
-###2026.01.062
+###2026.01.06b
 - Added transcode status to widget.
 - Added link to Emby server to widget.
 
-###2026.01.061
+###2026.01.06a
 - Added toggle logic to Post-Install to respect 'Display Widget' settings.
 - Aligned structure with PlexStreams.
 
