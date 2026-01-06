@@ -18,7 +18,7 @@
 </CHANGES>
 
 <OVERVIEW>
-A plugin to create a dashboard widget showing any active Emby streams.
+A plugin to create a dashboard widget that shows your active Emby streams
 </OVERVIEW>
 
 <FILE Name="&emhttp;/EmbyStreamsSettings.page">
@@ -39,31 +39,30 @@ A plugin to create a dashboard widget showing any active Emby streams.
 
 <FILE Run="/bin/bash">
 <INLINE>
-<![CDATA[
 # 1. Create Config Directory
 mkdir -p &plgPATH;
 
 # 2. Set Default Config if missing
+# Note: &gt; is used for greater-than sign (redirection) to satisfy XML parser
 if [ ! -f &plgPATH;/embystreams.cfg ]; then
-    echo "HOST=''" > &plgPATH;/embystreams.cfg
-    echo "PORT='8096'" >> &plgPATH;/embystreams.cfg
-    echo "API_KEY=''" >> &plgPATH;/embystreams.cfg
-    echo "POLL_INTERVAL='5'" >> &plgPATH;/embystreams.cfg
-    echo "DISPLAY_WIDGET='1'" >> &plgPATH;/embystreams.cfg
-    echo "DISPLAY_NAV='1'" >> &plgPATH;/embystreams.cfg
+    echo "HOST=''" &gt; &plgPATH;/embystreams.cfg
+    echo "PORT='8096'" &gt;&gt; &plgPATH;/embystreams.cfg
+    echo "API_KEY=''" &gt;&gt; &plgPATH;/embystreams.cfg
+    echo "POLL_INTERVAL='5'" &gt;&gt; &plgPATH;/embystreams.cfg
+    echo "DISPLAY_WIDGET='1'" &gt;&gt; &plgPATH;/embystreams.cfg
+    echo "DISPLAY_NAV='1'" &gt;&gt; &plgPATH;/embystreams.cfg
 fi
 
 # 3. Fix Permissions
 chmod -R 777 &emhttp;
 chmod -R 777 &plgPATH;
 
-# 4. TOGGLE LOGIC (Copied from PlexStreams)
-# Reads the config to decide if we should hide the Dashboard Widget or Nav Tab
+# 4. TOGGLE LOGIC
 CFG_FILE="&plgPATH;/embystreams.cfg"
 WIDGET_FILE="&emhttp;/EmbyStreams.page"
 
-# Use PHP to safely read the INI setting
-WIDGET_SETTING=$(php -r "echo parse_ini_file('$CFG_FILE', false)['DISPLAY_WIDGET'] ?? '1';")
+# PHP One-liner to read INI (Robust against PHP 8 warnings)
+WIDGET_SETTING=$(php -r "$c = @parse_ini_file('$CFG_FILE'); echo $c['DISPLAY_WIDGET'] ?? '1';")
 
 # Rename logic
 if [ "$WIDGET_SETTING" == "0" ]; then
@@ -84,16 +83,14 @@ echo " &name; has been installed."
 echo " Version: &version;"
 echo "-----------------------------------------------------------"
 echo ""
-]]>
 </INLINE>
 </FILE>
 
 <FILE Run="/bin/bash" Method="remove">
 <INLINE>
-<![CDATA[
 echo "Uninstalling &name;..."
 
-# Remove Plugin Files (both active and .off versions)
+# Remove Plugin Files
 rm -rf &emhttp;
 
 # Remove the PLG file itself
@@ -106,7 +103,6 @@ echo " &name; has been uninstalled."
 echo " Version: &version;"
 echo "-----------------------------------------------------------"
 echo ""
-]]>
 </INLINE>
 </FILE>
 
