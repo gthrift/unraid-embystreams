@@ -16,11 +16,10 @@ Cond="parse_ini_file('/boot/config/plugins/embystreams/embystreams.cfg')['DISPLA
 ?>
 
 <style>
-    /* Icon styling adjusted for tile-header */
+    /* Icon styling */
     .emby-icon-img { width: 32px; height: 32px; } 
 
-    /* Standard Row Styling */
-    /* Applied to both header and data rows */
+    /* Standard Row Styling (Desktop & Mobile) */
     .es-row, .es-header-row { 
         display: flex; 
         align-items: center; 
@@ -35,44 +34,37 @@ Cond="parse_ini_file('/boot/config/plugins/embystreams/embystreams.cfg')['DISPLA
     .es-row:last-child { border-bottom: none; }
     .es-transcode { font-size: 10px; opacity: 0.7; margin-left: 5px; }
 
-    /* --- Mobile Responsive Rules --- */
+    /* --- MOBILE OVERRIDES (Max Width 500px) --- */
     @media only screen and (max-width: 500px) {
         
-        /* 1. Hide Device and User columns */
-        .es-hide-mobile { 
-            display: none !important; 
+        /* 1. HIDE Device (2nd child) and User (3rd child) */
+        .es-header-row > span:nth-child(2),
+        .es-header-row > span:nth-child(3),
+        .es-row > span:nth-child(2),
+        .es-row > span:nth-child(3) {
+            display: none !important;
         }
         
-        /* 2. NAME Column (First Item) */
-        .es-header-row > span:first-child,
-        .es-row > span:first-child { 
-            /* CRITICAL: Unset standard Unraid widths */
-            width: auto !important; 
-            
-            /* Grow to fill all available space */
-            flex: 1 1 auto !important; 
-            
-            /* Must set min-width: 0 for ellipsis to work in Flexbox */
-            min-width: 0 !important; 
-            
+        /* 2. NAME Column (1st child) 
+           Force it to grow (flex: 1) and unset Unraid's fixed width */
+        .es-header-row > span:nth-child(1),
+        .es-row > span:nth-child(1) {
+            width: auto !important;
+            flex: 1 1 auto !important;
+            min-width: 0 !important; /* Critical for text-overflow to work */
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
         
-        /* 3. STATE Column (Last Item) */
-        .es-header-row > span:last-child,
-        .es-row > span:last-child { 
-            /* CRITICAL: Unset standard Unraid widths */
-            width: auto !important; 
-            
-            /* Do not grow, just fit the text */
-            flex: 0 0 auto !important; 
-            
-            /* Auto margin pushes this element to the FAR RIGHT edge */
-            margin-left: auto !important; 
+        /* 3. STATE Column (4th child)
+           Force it to stay compact and align right */
+        .es-header-row > span:nth-child(4),
+        .es-row > span:nth-child(4) {
+            width: auto !important;
+            flex: 0 0 auto !important;
             text-align: right !important;
-            padding-left: 10px;
+            margin-left: 10px !important;
         }
     }
 </style>
@@ -109,8 +101,8 @@ $mytiles[$plugin]['column1'] = <<<EOT
     <td>            
         <div class="es-header-row">
             <span class="w36">_(Name)_</span>
-            <span class="w18 es-hide-mobile" align="center">_(Device)_</span>
-            <span class="w18 es-hide-mobile">_(User)_</span>
+            <span class="w18" align="center">_(Device)_</span>
+            <span class="w18">_(User)_</span>
             <span class="w18" align="right">_(State)_</span>
         </div>
     </td>
