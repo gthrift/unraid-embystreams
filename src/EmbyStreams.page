@@ -33,25 +33,25 @@ Cond="parse_ini_file('/boot/config/plugins/embystreams/embystreams.cfg')['DISPLA
     .es-transcode { font-size: 10px; opacity: 0.7; margin-left: 5px; }
 
     /* --- DESKTOP LAYOUT (Default) --- */
-    /* Total width = 100% */
+    /* Using !important to force alignment over any Unraid defaults */
     
     .es-name { 
-        width: 40%; /* Big space for title */
+        width: 40% !important; 
     }
 
     .es-device { 
-        width: 25%; /* Increased width to prevent crowding */
-        text-align: center; 
+        width: 25% !important; 
+        text-align: center !important; 
     }
 
     .es-user { 
-        width: 15%; /* Shifted right, smaller width is fine for usernames */
-        text-align: center; 
+        width: 15% !important; 
+        text-align: center !important; 
     }
 
     .es-state { 
-        width: 20%; 
-        text-align: right; 
+        width: 20% !important; 
+        text-align: right !important; 
     }
 
 
