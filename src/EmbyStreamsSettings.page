@@ -1,66 +1,84 @@
-Menu="Settings:Utilities"
-Title="Emby Streams"
-Icon="emby.png"
+Menu="EmbyStreams"
+Title="Emby Stream Settings"
+Tag="film"
 ---
 <?php
+    $plugin = "embystreams";
+    $translations = file_exists("$docroot/webGui/include/Translations.php");
+    // We don't have a Legacy.php, so we skip that require
+?>
+<?if (!$translations):?>
+    <div style="padding: 20px;">Please update Unraid to use this plugin.</div>
+<?else:?>
+---
+<style>
+    .lds-dual-ring { display: inline-block; width: 16px; height: 16px; }
+    .lds-dual-ring:after { content: " "; display: block; width: 12px; height: 12px; margin: 1px; border-radius: 50%; border: 2px solid #fff; border-color: #000 transparent #000 transparent; animation: lds-dual-ring 1.2s linear infinite; }
+    @keyframes lds-dual-ring { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+</style>
+
+<?php
+// Load Config
 $cfg_file = "/boot/config/plugins/embystreams/embystreams.cfg";
 $cfg = parse_ini_file($cfg_file);
-$message = "";
 
-if ($_POST) {
-    // Basic sanitization
-    $cfg['HOST'] = preg_replace("/[^0-9.]/", "", $_POST['HOST']);
-    $cfg['PORT'] = (int)$_POST['PORT'];
-    $cfg['API_KEY'] = trim($_POST['API_KEY']);
-    $cfg['POLL_INTERVAL'] = (int)$_POST['POLL_INTERVAL'];
-    
-    // Save to file
-    $content = "";
-    foreach ($cfg as $key => $value) {
-        $content .= "$key='$value'\n";
-    }
-    file_put_contents($cfg_file, $content);
-    $message = "Settings Saved";
+// Set Defaults
+if (!isset($cfg['DISPLAY_WIDGET'])) { $cfg['DISPLAY_WIDGET'] = "1"; }
+if (!isset($cfg['DISPLAY_NAV'])) { $cfg['DISPLAY_NAV'] = "1"; }
+if (!isset($cfg['HOST'])) { $cfg['HOST'] = ""; }
+if (!isset($cfg['PORT'])) { $cfg['PORT'] = "8096"; }
+if (!isset($cfg['API_KEY'])) { $cfg['API_KEY'] = ""; }
+if (!isset($cfg['POLL_INTERVAL'])) { $cfg['POLL_INTERVAL'] = "5"; }
+
+// Logic to Hide/Show Tabs based on settings (Mirrors PlexStreams behavior)
+$pluginPath = '/usr/local/emhttp/plugins/embystreams/';
+
+// 1. Toggle the Main Navigation Tab
+if ($cfg['DISPLAY_NAV'] === '0' && file_exists($pluginPath . 'Emby_Streams.page')) {
+    rename($pluginPath .'Emby_Streams.page', $pluginPath .'Emby_Streams.page.off');
+} else if ($cfg['DISPLAY_NAV'] === '1' && file_exists($pluginPath . 'Emby_Streams.page.off')) {
+    rename($pluginPath .'Emby_Streams.page.off', $pluginPath .'Emby_Streams.page');
+}
+
+// 2. Toggle the Dashboard Widget
+if ($cfg['DISPLAY_WIDGET'] === '0' && file_exists($pluginPath . 'EmbyStreams.page')) {
+    rename($pluginPath .'EmbyStreams.page', $pluginPath .'EmbyStreams.page.off');
+} else if ($cfg['DISPLAY_WIDGET'] === '1' && file_exists($pluginPath . 'EmbyStreams.page.off')) {
+    rename($pluginPath .'EmbyStreams.page.off', $pluginPath .'EmbyStreams.page');
 }
 ?>
 
-<div class="box" style="width: 600px; margin: 20px auto;">
-    <?php if ($message): ?>
-    <div style="background: #e7f4e4; color: #2d562d; padding: 10px; border-radius: 4px; margin-bottom: 15px; text-align: center;">
-        <?=$message?>
-    </div>
-    <?php endif; ?>
+<form markdown="1" name="embystreams_settings" id="embystreams_settings" method="POST" action="/update.php" target="progressFrame">
+<input type="hidden" name="#file" value="embystreams/embystreams.cfg" />
 
-    <form method="POST">
-        <dl>
-            <dt>Emby Host IP:</dt>
-            <dd>
-                <input type="text" name="HOST" value="<?=$cfg['HOST'];?>" placeholder="192.168.1.50" required>
-                <div class="desc">The local IP address of your Emby server.</div>
-            </dd>
-            
-            <dt>Emby Port:</dt>
-            <dd>
-                <input type="number" name="PORT" value="<?=$cfg['PORT'];?>" placeholder="8096" required>
-                <div class="desc">Default is 8096.</div>
-            </dd>
-            
-            <dt>API Key:</dt>
-            <dd>
-                <input type="password" name="API_KEY" value="<?=$cfg['API_KEY'];?>" style="width: 100%;" required>
-                <div class="desc">Found in Emby Dashboard > Advanced > API Keys.</div>
-            </dd>
-            
-            <dt>Refresh Interval:</dt>
-            <dd>
-                <input type="number" name="POLL_INTERVAL" value="<?=$cfg['POLL_INTERVAL'];?>" min="1" max="60" style="width: 50px;"> seconds
-                <div class="desc">How often the dashboard widget updates.</div>
-            </dd>
-        </dl>
-        
-        <div style="text-align: center; margin-top: 20px;">
-            <input type="submit" value="Apply" class="literal-button">
-            <a href="/Dashboard" class="button">Cancel</a>
-        </div>
-    </form>
+<div>
+    _(Emby Host IP)_:
+    <input type="text" name="HOST" value="<?php echo($cfg['HOST']); ?>" placeholder="192.168.1.50" required style="width: 200px;">
+    
+    _(Port)_:
+    <input type="number" name="PORT" value="<?php echo($cfg['PORT']); ?>" placeholder="8096" style="width: 80px;">
 </div>
+
+<div>
+    _(API Key)_:
+    <input type="password" name="API_KEY" value="<?php echo($cfg['API_KEY']); ?>" style="width: 300px;">
+    <br>
+    <span class="desc">_(Generate this in Emby Dashboard > Advanced > API Keys)_</span>
+</div>
+
+<div>
+    _(Refresh Interval)_:
+    <input type="number" name="POLL_INTERVAL" value="<?php echo($cfg['POLL_INTERVAL']); ?>" min="1" max="60" style="width: 50px;"> _(seconds)_
+</div>
+
+<div>
+    _(Display Dashboard Widget)_:
+    <input type="radio" name="DISPLAY_WIDGET" id="DISPLAY_WIDGET_ON" value="1"  <?php echo( $cfg['DISPLAY_WIDGET'] === "1" ? "checked" : ""); ?>/>_(On)_
+    <input type="radio" name="DISPLAY_WIDGET" id="DISPLAY_WIDGET_OFF" value="0"  <?php echo( $cfg['DISPLAY_WIDGET'] === "0" ? "checked" : ""); ?>/>_(Off)_
+</div>
+
+<input type="submit" value="SAVE">
+
+</form>
+
+<?endif;?>
