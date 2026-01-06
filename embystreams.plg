@@ -12,10 +12,10 @@
 
 <CHANGES>
 ###2024.01.27
-- Complete refactor to match Unraid standards.
-- Added configurable poll interval.
-- Fixed dashboard widget layout.
-- Moved settings to User Utilities.
+- Refactored to match Unraid standards.
+- Fixed Dashboard widget layout (now collapsible/movable).
+- Moved Settings to "User Utilities".
+- Added configurable polling interval.
 </CHANGES>
 
 <FILE Name="/usr/local/emhttp/plugins/&name;/EmbyStreamsSettings.page">
@@ -50,8 +50,6 @@ chmod -R 777 /boot/config/plugins/&name;
 echo ""
 echo "----------------------------------------------------"
 echo " &name; has been installed."
-echo " Copyright 2024, &author;"
-echo " Version: &version;"
 echo "----------------------------------------------------"
 echo ""
 </INSTALL>
