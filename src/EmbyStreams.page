@@ -24,22 +24,29 @@ Cond="parse_ini_file('/boot/config/plugins/embystreams/embystreams.cfg')['DISPLA
     .es-row:last-child { border-bottom: none; }
     .es-transcode { font-size: 10px; opacity: 0.7; margin-left: 5px; }
 
-    /* Mobile Responsiveness */
+    /* --- Mobile Responsive Rules --- */
     @media only screen and (max-width: 500px) {
-        /* Hide elements with 'es-hide-mobile' class */
+        
+        /* 1. Hide Device and User columns */
         .es-hide-mobile { 
             display: none !important; 
         }
         
-        /* Make Name column wider on mobile */
+        /* 2. NAME Column (Header & Data) 
+           - Takes remaining width (100% - 80px) 
+           - 'float: left' ensures the Header aligns correctly */
         .w36, .es-row > span:first-child { 
-            width: 65% !important; 
+            width: calc(100% - 80px) !important; 
+            float: left;
         }
         
-        /* Make State column wider on mobile */
-        .w18:last-child, .es-row > span:last-child { 
-            width: 35% !important; 
-            text-align: right;
+        /* 3. STATE Column (Header & Data)
+           - Fixed 80px width (just enough for 'Playing')
+           - Pushed strictly to the right */
+        .w18:last-of-type, .es-row > span:last-child { 
+            width: 80px !important; 
+            text-align: right !important;
+            float: right;
         }
     }
 </style>
@@ -93,7 +100,6 @@ $mytiles[$plugin]['column1'] = <<<EOT
 EOT;
 
 // COMPATIBILITY BLOCK FOR UNRAID 7.2+
-// This ensures the header renders correctly on newer versions
 $isResponsiveWebgui = version_compare(parse_ini_file('/etc/unraid-version')['version'] ?? "", '7.2', '>=');
 if ( ! $isResponsiveWebgui) {
     $mytiles[$plugin]["column1"] .= <<<EOT
@@ -115,27 +121,19 @@ if ( ! $isResponsiveWebgui) {
     function updateEmbyDashboard() {
         $.get("/plugins/embystreams/embystreams_api.php", function(data) {
             if (data) {
-                // 1. Update the stream list content
+                // 1. Update list
                 $("#embystreams_streams").html(data);
                 
-                // 2. Calculate the count
+                // 2. Update count
                 var count = $("#embystreams_streams .es-row").length;
-                
-                // Double check: if the HTML contains the "No active streams" text, force count to 0
-                if(data.indexOf("No active streams") !== -1) {
-                    count = 0;
-                }
-                
-                // 3. Update the text number
+                if(data.indexOf("No active streams") !== -1) { count = 0; }
                 $("#embystreams_count").text(count);
             }
         });
     }
 
     $(function() {
-        // Run immediately
         updateEmbyDashboard();
-        // Start Polling
         setInterval(updateEmbyDashboard, embyPollInterval);
     });
 </script>
