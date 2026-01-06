@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "embystreams">
 <!ENTITY author    "gthrift">
-<!ENTITY version   "2026.01.06b">
+<!ENTITY version   "2026.01.06c">
 <!ENTITY launch    "Settings/EmbyStreamsSettings">
 <!ENTITY gitURL    "https://raw.githubusercontent.com/gthrift/unraid-embystreams/master">
 <!ENTITY pluginURL "&gitURL;/embystreams.plg">
@@ -13,6 +13,9 @@
 <PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&pluginURL;" icon="emby.png">
 
 <CHANGES>
+###2026.01.06c
+- Bug fixes
+
 ###2026.01.06b
 - Added transcode status to widget.
 - Added link to Emby server to widget.
