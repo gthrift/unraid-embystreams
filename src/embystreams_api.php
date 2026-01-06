@@ -6,7 +6,7 @@ error_reporting(0);
 $cfg_file = "/boot/config/plugins/embystreams/embystreams.cfg";
 
 if (!file_exists($cfg_file)) {
-    echo "<div style='padding:15px; text-align:center'>Configuration missing.</div>";
+    echo "<div style='padding:15px; text-align:center; opacity:0.6;'>_(Configuration missing)_</div>";
     exit;
 }
 
@@ -18,7 +18,7 @@ $key = $cfg['API_KEY'];
 // Check if basic settings are present
 if (empty($host) || empty($key)) {
     echo "<div style='padding:15px; text-align:center; color:#eebb00;'>
-            <i class='fa fa-exclamation-triangle'></i> Please configure settings.
+            <i class='fa fa-exclamation-triangle'></i> _(Please configure settings)_
           </div>";
     exit;
 }
@@ -40,7 +40,7 @@ curl_close($ch);
 // 3. Error Handling
 if ($http_code !== 200 || !$response) {
     echo "<div style='padding:15px; text-align:center; color:#d44;'>
-            Connection Failed ($host)
+            _(Connection Failed)_
           </div>";
     exit;
 }
@@ -87,11 +87,17 @@ if (empty($active_streams)) {
         $status_color = $is_paused ? "#f0ad4e" : "#8cc43c"; // Orange for pause, Green for play
         $status_icon  = $is_paused ? "fa-pause" : "fa-play";
 
-        // -- HTML Output --
-        // Note: We use <div> wrappers for rows to allow flexbox styling in the widget
-        // We use spans with class w36, w18, etc to match the header columns in the .page file
+        // Transcode Logic
+        // PlayMethod usually returns: 'Transcode', 'DirectStream', or 'DirectPlay'
+        $play_method = $s['PlayState']['PlayMethod'] ?? 'DirectPlay';
+        $is_transcoding = ($play_method === 'Transcode');
         
-        echo "<div style='padding:4px 0; border-bottom:1px solid rgba(255,255,255,0.05); display:flex; align-items:center;'>";
+        // Tooltip detail (e.g. "Playing (Transcode)")
+        $tooltip = "$status_text ($play_method)";
+
+        // -- HTML Output --
+        // CLASS 'es-row' IS CRITICAL: The dashboard Javascript counts these elements.
+        echo "<div class='es-row'>";
         
         // Name (36% width)
         echo "<span class='w36' style='white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding-right:10px;' title='$title'>
@@ -109,9 +115,16 @@ if (empty($active_streams)) {
               </span>";
               
         // Status (18% width, right aligned)
-        echo "<span class='w18' align='right' style='color:$status_color; font-weight:bold;'>
-                <i class='fa $status_icon' style='font-size:10px; margin-right:4px;'></i>$status_text
-              </span>";
+        // We use 'cursor:help' to indicate there is a tooltip
+        echo "<span class='w18' align='right' style='color:$status_color; font-weight:bold; cursor:help;' title='$tooltip'>";
+        
+        // If Transcoding, add the exchange icon
+        if ($is_transcoding) {
+            echo "<i class='fa fa-exchange es-transcode' title='_(Transcoding)_'></i> ";
+        }
+        
+        echo "<i class='fa $status_icon' style='font-size:10px; margin-right:4px;'></i>$status_text";
+        echo "</span>";
               
         echo "</div>";
     }
