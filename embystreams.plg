@@ -21,10 +21,6 @@
 A plugin to show active Emby streams directly on your dashboard.
 </OVERVIEW>
 
-<SUPPORT>
-https://github.com/gthrift/unraid-embystreams/
-</Support>
-
 <FILE Name="&emhttp;/EmbyStreamsSettings.page">
 <URL>&gitURL;/src/EmbyStreamsSettings.page</URL>
 </FILE>
