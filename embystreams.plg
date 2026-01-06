@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "embystreams">
 <!ENTITY author    "gthrift">
-<!ENTITY version   "2026.01.06c">
+<!ENTITY version   "2026.01.06">
 <!ENTITY launch    "Settings/EmbyStreamsSettings">
 <!ENTITY gitURL    "https://raw.githubusercontent.com/gthrift/unraid-embystreams/master">
 <!ENTITY pluginURL "&gitURL;/embystreams.plg">
@@ -13,20 +13,13 @@
 <PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&pluginURL;" icon="emby.png">
 
 <CHANGES>
-###2026.01.06c
-- Bug fixes
-
-###2026.01.06b
-- Added transcode status to widget.
-- Added link to Emby server to widget.
-
-###2026.01.06a
-- Added toggle logic to Post-Install to respect 'Display Widget' settings.
-- Aligned structure with PlexStreams.
-
 ###2026.01.06
-- Initial release structure.
+- Initial release.
 </CHANGES>
+
+<OVERVIEW>
+A plugin to create a dashboard widget showing any active Emby streams.
+</OVERVIEW>
 
 <FILE Name="&emhttp;/EmbyStreamsSettings.page">
 <URL>&gitURL;/src/EmbyStreamsSettings.page</URL>
@@ -46,6 +39,7 @@
 
 <FILE Run="/bin/bash">
 <INLINE>
+<![CDATA[
 # 1. Create Config Directory
 mkdir -p &plgPATH;
 
@@ -84,19 +78,19 @@ else
     fi
 fi
 
-# (Repeat for Nav tab if you add one later)
-
 echo ""
 echo "-----------------------------------------------------------"
 echo " &name; has been installed."
 echo " Version: &version;"
 echo "-----------------------------------------------------------"
 echo ""
+]]>
 </INLINE>
 </FILE>
 
 <FILE Run="/bin/bash" Method="remove">
 <INLINE>
+<![CDATA[
 echo "Uninstalling &name;..."
 
 # Remove Plugin Files (both active and .off versions)
@@ -112,6 +106,7 @@ echo " &name; has been uninstalled."
 echo " Version: &version;"
 echo "-----------------------------------------------------------"
 echo ""
+]]>
 </INLINE>
 </FILE>
 
