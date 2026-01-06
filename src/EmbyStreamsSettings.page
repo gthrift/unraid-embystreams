@@ -1,0 +1,45 @@
+Menu="Settings:Utilities"
+Title="Emby Streams"
+Icon="emby.png"
+---
+<?php
+$cfg_file = "/boot/config/plugins/embystreams/embystreams.cfg";
+$cfg = parse_ini_file($cfg_file);
+
+if ($_POST) {
+    // Save settings when form is submitted
+    $cfg['HOST'] = $_POST['HOST'];
+    $cfg['PORT'] = $_POST['PORT'];
+    $cfg['API_KEY'] = $_POST['API_KEY'];
+    $cfg['POLL_INTERVAL'] = $_POST['POLL_INTERVAL'];
+    
+    // Write to config file
+    $content = "";
+    foreach ($cfg as $key => $value) {
+        $content .= "$key='$value'\n";
+    }
+    file_put_contents($cfg_file, $content);
+    echo "<p class='notice'>Settings Saved.</p>";
+}
+?>
+
+<div style="width: 50%; min-width: 500px;">
+    <form method="POST">
+        <dl>
+            <dt>Emby Host IP:</dt>
+            <dd><input type="text" name="HOST" value="<?=$cfg['HOST'];?>" placeholder="192.168.1.10" style="width: 200px;"></dd>
+            
+            <dt>Emby Port:</dt>
+            <dd><input type="number" name="PORT" value="<?=$cfg['PORT'];?>" placeholder="8096" style="width: 100px;"></dd>
+            
+            <dt>API Key:</dt>
+            <dd><input type="password" name="API_KEY" value="<?=$cfg['API_KEY'];?>" style="width: 300px;"></dd>
+            
+            <dt>Refresh Interval (seconds):</dt>
+            <dd><input type="number" name="POLL_INTERVAL" value="<?=$cfg['POLL_INTERVAL'];?>" min="1" max="60" style="width: 60px;">
+            <span class="desc">How often the dashboard widget updates.</span></dd>
+        </dl>
+        <br>
+        <input type="submit" value="Save Settings">
+    </form>
+</div>

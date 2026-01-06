@@ -1,0 +1,38 @@
+Menu="Dashboard"
+Icon="emby.png"
+---
+<?php
+$cfg = parse_ini_file("/boot/config/plugins/embystreams/embystreams.cfg");
+$interval = isset($cfg['POLL_INTERVAL']) ? (int)$cfg['POLL_INTERVAL'] * 1000 : 5000;
+?>
+
+<style>
+    #emby_streams_content table { width: 100%; text-align: left; }
+    #emby_streams_content th { font-weight: bold; border-bottom: 1px solid #444; padding: 5px; }
+    #emby_streams_content td { padding: 5px; border-bottom: 1px solid #2b2b2b; }
+    .emby-user-img { width: 30px; border-radius: 50%; vertical-align: middle; margin-right: 10px; }
+</style>
+
+<div class="tile-content" id="emby_streams_content">
+    <div style="text-align:center; padding: 20px;">
+        <i class="fa fa-spinner fa-spin"></i> Loading Emby Streams...
+    </div>
+</div>
+
+<script>
+    var embyPollInterval = <?=$interval;?>;
+    
+    function updateEmbyStreams() {
+        $.get("/plugins/embystreams/embystreams_api.php", function(data) {
+            $("#emby_streams_content").html(data);
+        }).fail(function() {
+            $("#emby_streams_content").html("Error contacting Emby API. Check Settings.");
+        });
+    }
+
+    // Initial Load
+    updateEmbyStreams();
+
+    // Set Interval
+    setInterval(updateEmbyStreams, embyPollInterval);
+</script>

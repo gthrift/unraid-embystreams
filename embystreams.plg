@@ -1,314 +1,65 @@
 <?xml version='1.0' standalone='yes'?>
 <!DOCTYPE PLUGIN [
-  <!ENTITY name      "embystreams">
-  <!ENTITY author    "YourUsername">
-  <!ENTITY repo      "Unraid-embystreams">
-  <!ENTITY tag       "main">
-  <!ENTITY version   "2025.01.06">
-  <!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
-  <!ENTITY cfgdir    "/boot/config/plugins/&name;">
-  <!ENTITY launch    "Settings/EmbyStreams">
-  <!ENTITY pluginURL "https://raw.githubusercontent.com/&author;/&repo;/&tag;/&name;.plg">
-  <!ENTITY srcURL    "https://raw.githubusercontent.com/&author;/&repo;/&tag;/src/embystreams">
-  <!ENTITY icon      "embystreams">
-  <!ENTITY min       "6.12.0">
+<!ENTITY name      "embystreams">
+<!ENTITY author    "gthrift">
+<!ENTITY version   "2024.01.27">
+<!ENTITY launch    "Settings/EmbyStreamsSettings">
+<!ENTITY gitURL    "https://raw.githubusercontent.com/gthrift/unraid-embystreams/master">
+<!ENTITY pluginURL "&gitURL;/embystreams.plg">
 ]>
 
-<PLUGIN name="&name;" 
-        author="&author;" 
-        version="&version;" 
-        pluginURL="&pluginURL;" 
-        launch="&launch;"
-        icon="&icon;"
-        min="&min;">
+<PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&pluginURL;" icon="emby.png">
 
 <CHANGES>
-## EmbyStreams
-
-An UnRAID plugin that displays currently active Emby streaming sessions on your dashboard.
-
-### Features
-
-- Dashboard Widget: Real-time view of all active Emby streams directly on your UnRAID dashboard
-- Stream Details: Shows user, client, quality, play method (Direct Play/Transcode)
-- Progress Tracking: Visual progress bar and time display for each stream
-- Thumbnails: Optional media thumbnails for easy identification
-- Transcode Info: See at a glance which streams are transcoding
-- Auto-Refresh: Configurable refresh interval
-- Clean Upgrades: Configuration preserved during plugin updates
-
-### Changelog
-
-#### 2025.01.06
-- Initial release
-- Dashboard widget with real-time stream display
-- Settings page with connection test
-- Thumbnail support
-- Transcode indicator badges
-- Progress tracking
-- Auto-refresh functionality
+###2024.01.27
+- Complete refactor to match Unraid standards.
+- Added configurable poll interval.
+- Fixed dashboard widget layout.
+- Moved settings to User Utilities.
 </CHANGES>
 
-<!-- Plugin Icon -->
-<FILE Name="&plugdir;/images/&name;.png">
-<URL>https://raw.githubusercontent.com/&author;/&repo;/&tag;/metadata/images/&name;.png</URL>
+<FILE Name="/usr/local/emhttp/plugins/&name;/EmbyStreamsSettings.page">
+<URL>&gitURL;/src/EmbyStreamsSettings.page</URL>
 </FILE>
 
-<!-- Pre-Install Script -->
-<FILE Run="/bin/bash" Method="install">
-<INLINE>
-#!/bin/bash
-#
-# EmbyStreams Pre-Install Script
-# Runs BEFORE plugin files are installed
-#
+<FILE Name="/usr/local/emhttp/plugins/&name;/EmbyStreams.page">
+<URL>&gitURL;/src/EmbyStreams.page</URL>
+</FILE>
 
-PLUGIN_NAME="&name;"
-CONFIG_DIR="/boot/config/plugins/${PLUGIN_NAME}"
-EMHTTP_DIR="/usr/local/emhttp/plugins/${PLUGIN_NAME}"
+<FILE Name="/usr/local/emhttp/plugins/&name;/embystreams_api.php">
+<URL>&gitURL;/src/embystreams_api.php</URL>
+</FILE>
 
-echo "Installing EmbyStreams plugin..."
+<FILE Name="/usr/local/emhttp/plugins/&name;/emby.png">
+<URL>&gitURL;/metadata/emby.png</URL>
+</FILE>
 
-# Create necessary directories
-mkdir -p "${CONFIG_DIR}"
-mkdir -p "${EMHTTP_DIR}/images"
-mkdir -p "${EMHTTP_DIR}/include"
+<INSTALL>
+mkdir -p /boot/config/plugins/&name;
 
-# Backup existing configuration if upgrading
-if [ -f "${CONFIG_DIR}/${PLUGIN_NAME}.cfg" ]; then
-    echo "Backing up existing configuration..."
-    cp "${CONFIG_DIR}/${PLUGIN_NAME}.cfg" "${CONFIG_DIR}/${PLUGIN_NAME}.cfg.bak"
+if [ ! -f /boot/config/plugins/&name;/embystreams.cfg ]; then
+    echo "HOST=''" > /boot/config/plugins/&name;/embystreams.cfg
+    echo "PORT='8096'" >> /boot/config/plugins/&name;/embystreams.cfg
+    echo "API_KEY=''" >> /boot/config/plugins/&name;/embystreams.cfg
+    echo "POLL_INTERVAL='5'" >> /boot/config/plugins/&name;/embystreams.cfg
 fi
 
-# Check minimum Unraid version
-UNRAID_VERSION=$(cat /etc/unraid-version 2>/dev/null | grep -oP 'version="\K[^"]+' || echo "0.0.0")
-MIN_VERSION="&min;"
+chmod -R 777 /usr/local/emhttp/plugins/&name;
+chmod -R 777 /boot/config/plugins/&name;
 
-version_compare() {
-    if [[ $1 == $2 ]]; then
-        return 0
-    fi
-    local IFS=.
-    local i ver1=($1) ver2=($2)
-    for ((i=${#ver1[@]}; i&lt;${#ver2[@]}; i++)); do
-        ver1[i]=0
-    done
-    for ((i=0; i&lt;${#ver1[@]}; i++)); do
-        if [[ -z ${ver2[i]} ]]; then
-            ver2[i]=0
-        fi
-        if ((10#${ver1[i]} > 10#${ver2[i]})); then
-            return 1
-        fi
-        if ((10#${ver1[i]} &lt; 10#${ver2[i]})); then
-            return 2
-        fi
-    done
-    return 0
-}
-
-version_compare "${UNRAID_VERSION}" "${MIN_VERSION}"
-result=$?
-if [ $result -eq 2 ]; then
-    echo "WARNING: This plugin is designed for Unraid ${MIN_VERSION} or later"
-    echo "Current version: ${UNRAID_VERSION}"
-    echo "Plugin may not work correctly on older versions"
-fi
-
-echo "Pre-install completed"
-exit 0
-</INLINE>
-</FILE>
-
-<!-- Settings Page -->
-<FILE Name="&plugdir;/&name;.page">
-<URL>&srcURL;/embystreams.page</URL>
-</FILE>
-
-<!-- Dashboard Widget Page -->
-<FILE Name="&plugdir;/NewDashboard.page">
-<URL>&srcURL;/NewDashboard.page</URL>
-</FILE>
-
-<!-- PHP API Helper -->
-<FILE Name="&plugdir;/include/EmbyAPI.php">
-<URL>&srcURL;/include/EmbyAPI.php</URL>
-</FILE>
-
-<!-- PHP Helper Functions -->
-<FILE Name="&plugdir;/include/helpers.php">
-<URL>&srcURL;/include/helpers.php</URL>
-</FILE>
-
-<!-- AJAX Endpoint -->
-<FILE Name="&plugdir;/include/ajax.php">
-<URL>&srcURL;/include/ajax.php</URL>
-</FILE>
-
-<!-- Default Configuration -->
-<FILE Name="&plugdir;/default.cfg">
-<URL>&srcURL;/default.cfg</URL>
-</FILE>
-
-<!-- Post-Install Script -->
-<FILE Run="/bin/bash" Method="install">
-<INLINE>
-#!/bin/bash
-#
-# EmbyStreams Post-Install Script
-# Runs AFTER all plugin files are installed
-#
-
-PLUGIN_NAME="&name;"
-CONFIG_DIR="/boot/config/plugins/${PLUGIN_NAME}"
-EMHTTP_DIR="/usr/local/emhttp/plugins/${PLUGIN_NAME}"
-DEFAULT_CFG="${EMHTTP_DIR}/default.cfg"
-USER_CFG="${CONFIG_DIR}/${PLUGIN_NAME}.cfg"
-
-# Create user config from default if it doesn't exist
-if [ ! -f "${USER_CFG}" ]; then
-    if [ -f "${DEFAULT_CFG}" ]; then
-        echo "Creating default configuration..."
-        cp "${DEFAULT_CFG}" "${USER_CFG}"
-    fi
-fi
-
-# Restore backed up configuration (preserving user settings during upgrade)
-if [ -f "${CONFIG_DIR}/${PLUGIN_NAME}.cfg.bak" ]; then
-    echo "Restoring configuration from backup..."
-    
-    # Merge old config with new defaults (keeping user values)
-    if [ -f "${DEFAULT_CFG}" ] &amp;&amp; [ -f "${USER_CFG}" ]; then
-        while IFS='=' read -r key value; do
-            # Skip comments and empty lines
-            [[ "$key" =~ ^[[:space:]]*# ]] &amp;&amp; continue
-            [[ -z "$key" ]] &amp;&amp; continue
-            
-            # Clean the key
-            key=$(echo "$key" | tr -d ' "')
-            
-            # Check if key exists in backup
-            if grep -q "^${key}=" "${CONFIG_DIR}/${PLUGIN_NAME}.cfg.bak" 2>/dev/null; then
-                # Use value from backup
-                backup_value=$(grep "^${key}=" "${CONFIG_DIR}/${PLUGIN_NAME}.cfg.bak" | cut -d'=' -f2-)
-                sed -i "s|^${key}=.*|${key}=${backup_value}|" "${USER_CFG}"
-            fi
-        done &lt; "${DEFAULT_CFG}"
-    fi
-    
-    rm -f "${CONFIG_DIR}/${PLUGIN_NAME}.cfg.bak"
-    echo "Configuration restored"
-fi
-
-# Set proper permissions
-chmod 644 "${USER_CFG}" 2>/dev/null
-chmod -R 755 "${EMHTTP_DIR}"
-
-echo "EmbyStreams installation completed successfully"
-echo "Configure the plugin at Settings -> EmbyStreams"
-exit 0
-</INLINE>
-</FILE>
-
-<!-- Upgrade Script -->
-<FILE Run="/bin/bash" Method="install">
-<INLINE>
-#!/bin/bash
-#
-# EmbyStreams Upgrade Script
-# Handles version-specific migrations
-#
-
-PLUGIN_NAME="&name;"
-CONFIG_DIR="/boot/config/plugins/${PLUGIN_NAME}"
-VERSION_FILE="${CONFIG_DIR}/version"
-USER_CFG="${CONFIG_DIR}/${PLUGIN_NAME}.cfg"
-
-# Get current installed version (if any)
-CURRENT_VERSION=""
-if [ -f "${VERSION_FILE}" ]; then
-    CURRENT_VERSION=$(cat "${VERSION_FILE}")
-fi
-
-# New version being installed
-NEW_VERSION="&version;"
-
-echo "EmbyStreams: Upgrading from ${CURRENT_VERSION:-new install} to ${NEW_VERSION}"
-
-# Version comparison helper
-version_less_than() {
-    local ver1="$1"
-    local ver2="$2"
-    
-    if [[ "$ver1" == "$ver2" ]]; then
-        return 1
-    fi
-    
-    local IFS=.
-    local i v1=($ver1) v2=($ver2)
-    
-    for ((i=0; i&lt;${#v1[@]} || i&lt;${#v2[@]}; i++)); do
-        local n1=${v1[i]:-0}
-        local n2=${v2[i]:-0}
-        if ((n1 &lt; n2)); then
-            return 0
-        elif ((n1 > n2)); then
-            return 1
-        fi
-    done
-    return 1
-}
-
-# Version-specific migrations
-if [ -n "${CURRENT_VERSION}" ] &amp;&amp; [ -f "${USER_CFG}" ]; then
-    # Add migrations here as needed
-    :
-fi
-
-# Save new version
-echo "${NEW_VERSION}" > "${VERSION_FILE}"
-
-echo "EmbyStreams upgrade completed"
-exit 0
-</INLINE>
-</FILE>
-
-<!-- Removal Script -->
-<FILE Run="/bin/bash" Method="remove">
-<INLINE>
-<![CDATA[
-#!/bin/bash
-#
-# EmbyStreams Removal Script
-# Cleanup when plugin is uninstalled
-#
-
-PLUGIN_NAME="embystreams"
-CONFIG_DIR="/boot/config/plugins/${PLUGIN_NAME}"
-EMHTTP_DIR="/usr/local/emhttp/plugins/${PLUGIN_NAME}"
-
-echo "Removing EmbyStreams plugin..."
-
-# Remove runtime files
-rm -rf "${EMHTTP_DIR}"
-
-# Remove temporary/cache files
-rm -rf /tmp/${PLUGIN_NAME}*
-
-# Configuration is preserved for reinstall
-# User can manually delete if desired
 echo ""
-echo "Configuration preserved at: ${CONFIG_DIR}"
-echo "To completely remove all data, manually delete: ${CONFIG_DIR}"
+echo "----------------------------------------------------"
+echo " &name; has been installed."
+echo " Copyright 2024, &author;"
+echo " Version: &version;"
+echo "----------------------------------------------------"
 echo ""
+</INSTALL>
 
-# Uncomment to auto-remove config:
-# rm -rf "${CONFIG_DIR}"
-
-echo "EmbyStreams removal completed"
-exit 0
-]]>
-</INLINE>
-</FILE>
+<REMOVE>
+removepkg &name;
+rm -rf /usr/local/emhttp/plugins/&name;
+echo "&name; has been removed"
+</REMOVE>
 
 </PLUGIN>
