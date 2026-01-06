@@ -17,10 +17,6 @@
 - Initial release.
 </CHANGES>
 
-<OVERVIEW>
-A plugin to show active Emby streams directly on your dashboard.
-</OVERVIEW>
-
 <FILE Name="&emhttp;/EmbyStreamsSettings.page">
 <URL>&gitURL;/src/EmbyStreamsSettings.page</URL>
 </FILE>
