@@ -1,11 +1,12 @@
 <?php
-// Suppress warnings for cleaner API output
+// Suppress warnings to prevent breaking dashboard JSON/HTML
 error_reporting(0);
 
+// 1. Load Configuration
 $cfg_file = "/boot/config/plugins/embystreams/embystreams.cfg";
 
 if (!file_exists($cfg_file)) {
-    echo "<div style='padding:15px; text-align:center'>Config missing.</div>";
+    echo "<div style='padding:15px; text-align:center'>Configuration missing.</div>";
     exit;
 }
 
@@ -14,62 +15,105 @@ $host = $cfg['HOST'];
 $port = $cfg['PORT'];
 $key = $cfg['API_KEY'];
 
+// Check if basic settings are present
 if (empty($host) || empty($key)) {
-    echo "<div style='padding:15px; text-align:center'>Please configure settings.</div>";
+    echo "<div style='padding:15px; text-align:center; color:#eebb00;'>
+            <i class='fa fa-exclamation-triangle'></i> Please configure settings.
+          </div>";
     exit;
 }
 
-// Timeout set short so dashboard doesn't hang
+// 2. Prepare API Call
+// Emby Sessions API endpoint
+$url = "http://$host:$port/emby/Sessions?api_key=$key";
+
 $ch = curl_init();
-curl_setopt($ch, CURLOPT_URL, "http://$host:$port/emby/Sessions?api_key=$key");
+curl_setopt($ch, CURLOPT_URL, $url);
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+// Short timeouts to ensure the dashboard doesn't hang if Emby is down
 curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 2);
 curl_setopt($ch, CURLOPT_TIMEOUT, 3);
 $response = curl_exec($ch);
 $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 curl_close($ch);
 
+// 3. Error Handling
 if ($http_code !== 200 || !$response) {
-    echo "<div style='padding:15px; color:#d44; text-align:center'>Connection Failed</div>";
+    echo "<div style='padding:15px; text-align:center; color:#d44;'>
+            Connection Failed ($host)
+          </div>";
     exit;
 }
 
 $sessions = json_decode($response, true);
-$active = [];
+$active_streams = [];
 
+// 4. Filter for Active Playing Sessions
 if ($sessions) {
-    foreach ($sessions as $s) {
-        if (isset($s['NowPlayingItem'])) {
-            $active[] = $s;
+    foreach ($sessions as $session) {
+        // We only care if 'NowPlayingItem' exists
+        if (isset($session['NowPlayingItem'])) {
+            $active_streams[] = $session;
         }
     }
 }
 
-if (empty($active)) {
-    echo "<div style='padding:20px; text-align:center; opacity:0.6'>No active streams</div>";
+// 5. Generate Output
+if (empty($active_streams)) {
+    echo "<div style='padding:15px; text-align:center; opacity:0.6; font-style:italic;'>
+            _(No active streams)_
+          </div>";
 } else {
-    echo "<table>";
-    echo "<thead><tr><th>User</th><th>Playing</th><th>Device</th><th>State</th></tr></thead>";
-    echo "<tbody>";
-    
-    foreach ($active as $s) {
+    foreach ($active_streams as $s) {
+        // -- Data Extraction --
+        
+        // User
         $user = htmlspecialchars($s['UserName']);
+        
+        // Title (Show 'Series - Episode' or just 'Movie Name')
         $title = htmlspecialchars($s['NowPlayingItem']['Name']);
         if (isset($s['NowPlayingItem']['SeriesName'])) {
             $title = htmlspecialchars($s['NowPlayingItem']['SeriesName']) . " - " . $title;
         }
+        
+        // Device
         $device = htmlspecialchars($s['DeviceName']);
-        $paused = (isset($s['PlayState']['IsPaused']) && $s['PlayState']['IsPaused']);
         
-        $icon = $paused ? "<i class='fa fa-pause es-icon-pause'></i>" : "<i class='fa fa-play es-icon-play'></i>";
+        // Status (Paused/Playing)
+        $is_paused = (isset($s['PlayState']['IsPaused']) && $s['PlayState']['IsPaused']);
+        $status_text = $is_paused ? "Paused" : "Playing";
         
-        echo "<tr>";
-        echo "<td>$user</td>";
-        echo "<td>$title</td>";
-        echo "<td>$device</td>";
-        echo "<td>$icon</td>";
-        echo "</tr>";
+        // Styling based on status
+        $status_color = $is_paused ? "#f0ad4e" : "#8cc43c"; // Orange for pause, Green for play
+        $status_icon  = $is_paused ? "fa-pause" : "fa-play";
+
+        // -- HTML Output --
+        // Note: We use <div> wrappers for rows to allow flexbox styling in the widget
+        // We use spans with class w36, w18, etc to match the header columns in the .page file
+        
+        echo "<div style='padding:4px 0; border-bottom:1px solid rgba(255,255,255,0.05); display:flex; align-items:center;'>";
+        
+        // Name (36% width)
+        echo "<span class='w36' style='white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding-right:10px;' title='$title'>
+                $title
+              </span>";
+        
+        // Device (18% width, centered)
+        echo "<span class='w18' align='center' style='white-space:nowrap; overflow:hidden; text-overflow:ellipsis;' title='$device'>
+                $device
+              </span>";
+              
+        // User (18% width)
+        echo "<span class='w18' style='white-space:nowrap; overflow:hidden; text-overflow:ellipsis;' title='$user'>
+                <i class='fa fa-user' style='opacity:0.3; margin-right:4px;'></i>$user
+              </span>";
+              
+        // Status (18% width, right aligned)
+        echo "<span class='w18' align='right' style='color:$status_color; font-weight:bold;'>
+                <i class='fa $status_icon' style='font-size:10px; margin-right:4px;'></i>$status_text
+              </span>";
+              
+        echo "</div>";
     }
-    echo "</tbody></table>";
 }
 ?>
