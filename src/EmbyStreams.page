@@ -15,7 +15,6 @@ Cond="parse_ini_file('/boot/config/plugins/embystreams/embystreams.cfg')['DISPLA
 ?>
 
 <style>
-    /* Icon styling */
     .emby-icon-img { width: 32px; height: 32px; } 
 
     /* Base Row Styling */
@@ -34,26 +33,22 @@ Cond="parse_ini_file('/boot/config/plugins/embystreams/embystreams.cfg')['DISPLA
     .es-transcode { font-size: 10px; opacity: 0.7; margin-left: 5px; }
 
     /* --- DESKTOP LAYOUT (Default) --- */
-    /* This fixes the crowding and fills the white space */
+    /* Total width = 100% */
     
-    /* 1. Name: 38% (Takes the bulk of space) */
     .es-name { 
-        width: 38%; 
+        width: 40%; /* Big space for title */
     }
 
-    /* 2. Device: 22% (Centered) - Slightly wider to prevent text cut-off */
     .es-device { 
-        width: 22%; 
+        width: 25%; /* Increased width to prevent crowding */
         text-align: center; 
     }
 
-    /* 3. User: 20% (Centered) - Centers text to shift it away from Device */
     .es-user { 
-        width: 20%; 
+        width: 15%; /* Shifted right, smaller width is fine for usernames */
         text-align: center; 
     }
 
-    /* 4. State: 20% (Right Aligned) - Pushed to the far right */
     .es-state { 
         width: 20%; 
         text-align: right; 
@@ -63,12 +58,11 @@ Cond="parse_ini_file('/boot/config/plugins/embystreams/embystreams.cfg')['DISPLA
     /* --- MOBILE OVERRIDES (Max Width 600px) --- */
     @media only screen and (max-width: 600px) {
         
-        /* Hide Device and User Columns */
         .es-device, .es-user { 
             display: none !important; 
         }
         
-        /* NAME Column: Fill available space */
+        /* NAME: Fill available space */
         .es-name { 
             width: auto !important;     
             flex: 1 1 auto !important;  
@@ -78,7 +72,7 @@ Cond="parse_ini_file('/boot/config/plugins/embystreams/embystreams.cfg')['DISPLA
             text-overflow: ellipsis;
         }
         
-        /* STATE Column: Compact on right */
+        /* STATE: Compact on right */
         .es-state { 
             width: auto !important;    
             flex: 0 0 auto !important;  
