@@ -8,7 +8,6 @@ Cond="parse_ini_file('/boot/config/plugins/embystreams/embystreams.cfg')['DISPLA
     $cfg = parse_ini_file("/boot/config/plugins/embystreams/embystreams.cfg");
     $poll_interval = isset($cfg['POLL_INTERVAL']) ? (int)$cfg['POLL_INTERVAL'] * 1000 : 5000;
     
-    // Construct Emby WebUI URL
     $host = $cfg['HOST'] ?? '';
     $port = $cfg['PORT'] ?? '8096';
     $protocol = ($port == '8920') ? 'https' : 'http';
@@ -19,12 +18,12 @@ Cond="parse_ini_file('/boot/config/plugins/embystreams/embystreams.cfg')['DISPLA
     /* Icon styling */
     .emby-icon-img { width: 32px; height: 32px; } 
 
-    /* Standard Row Styling (Desktop & Mobile) */
+    /* Base Row Styling */
     .es-row, .es-header-row { 
         display: flex; 
         align-items: center; 
         width: 100%;
-        box-sizing: border-box;
+        box-sizing: border-box; /* Ensures padding doesn't break width */
     }
     
     .es-row { 
@@ -34,37 +33,31 @@ Cond="parse_ini_file('/boot/config/plugins/embystreams/embystreams.cfg')['DISPLA
     .es-row:last-child { border-bottom: none; }
     .es-transcode { font-size: 10px; opacity: 0.7; margin-left: 5px; }
 
-    /* --- MOBILE OVERRIDES (Max Width 500px) --- */
-    @media only screen and (max-width: 500px) {
+    /* --- MOBILE RESPONSIVE RULES (Max Width 600px) --- */
+    @media only screen and (max-width: 600px) {
         
-        /* 1. HIDE Device (2nd child) and User (3rd child) */
-        .es-header-row > span:nth-child(2),
-        .es-header-row > span:nth-child(3),
-        .es-row > span:nth-child(2),
-        .es-row > span:nth-child(3) {
-            display: none !important;
+        /* 1. Hide Device and User Columns */
+        .es-device, .es-user { 
+            display: none !important; 
         }
         
-        /* 2. NAME Column (1st child) 
-           Force it to grow (flex: 1) and unset Unraid's fixed width */
-        .es-header-row > span:nth-child(1),
-        .es-row > span:nth-child(1) {
-            width: auto !important;
-            flex: 1 1 auto !important;
-            min-width: 0 !important; /* Critical for text-overflow to work */
+        /* 2. NAME Column: FORCE it to fill the screen */
+        .es-name { 
+            width: auto !important;     /* Override Unraid's 36% */
+            flex: 1 1 auto !important;  /* Grow to fill empty space */
+            min-width: 0;               /* Allow text truncation */
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
         
-        /* 3. STATE Column (4th child)
-           Force it to stay compact and align right */
-        .es-header-row > span:nth-child(4),
-        .es-row > span:nth-child(4) {
-            width: auto !important;
-            flex: 0 0 auto !important;
-            text-align: right !important;
-            margin-left: 10px !important;
+        /* 3. STATE Column: Push to the right */
+        .es-state { 
+            width: auto !important;     /* Override Unraid's 18% */
+            flex: 0 0 auto !important;  /* Don't grow, don't shrink */
+            margin-left: auto;          /* Push to far right edge */
+            text-align: right;
+            padding-left: 10px;
         }
     }
 </style>
@@ -100,10 +93,10 @@ $mytiles[$plugin]['column1'] = <<<EOT
   <tr>
     <td>            
         <div class="es-header-row">
-            <span class="w36">_(Name)_</span>
-            <span class="w18" align="center">_(Device)_</span>
-            <span class="w18">_(User)_</span>
-            <span class="w18" align="right">_(State)_</span>
+            <span class="w36 es-name">_(Name)_</span>
+            <span class="w18 es-device" align="center">_(Device)_</span>
+            <span class="w18 es-user">_(User)_</span>
+            <span class="w18 es-state" align="right">_(State)_</span>
         </div>
     </td>
   </tr>
