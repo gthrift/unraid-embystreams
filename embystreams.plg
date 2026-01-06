@@ -1,526 +1,312 @@
 <?xml version='1.0' standalone='yes'?>
 <!DOCTYPE PLUGIN [
-<!ENTITY name      "embystreams">
-<!ENTITY author    "YOUR_GITHUB_USERNAME">
-<!ENTITY version   "2026.01.05">
-<!ENTITY gitURL    "https://raw.githubusercontent.com/YOUR_GITHUB_USERNAME/unraid-embystreams/main">
-<!ENTITY pluginURL "&gitURL;/embystreams.plg">
-<!ENTITY md5       "PUT_MD5_HERE_AFTER_FIRST_RELEASE">
+  <!ENTITY name      "embystreams">
+  <!ENTITY author    "YourUsername">
+  <!ENTITY repo      "Unraid-embystreams">
+  <!ENTITY tag       "main">
+  <!ENTITY version   "2025.01.06">
+  <!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
+  <!ENTITY cfgdir    "/boot/config/plugins/&name;">
+  <!ENTITY launch    "Settings/EmbyStreams">
+  <!ENTITY pluginURL "https://raw.githubusercontent.com/&author;/&repo;/&tag;/&name;.plg">
+  <!ENTITY srcURL    "https://raw.githubusercontent.com/&author;/&repo;/&tag;/src/embystreams">
+  <!ENTITY icon      "embystreams">
+  <!ENTITY min       "6.12.0">
 ]>
 
-<PLUGIN name="&name;" author="&author;" version="&version;" pluginURL="&pluginURL;" min="6.9.0" support="https://github.com/YOUR_GITHUB_USERNAME/unraid-embystreams/issues">
+<PLUGIN name="&name;" 
+        author="&author;" 
+        version="&version;" 
+        pluginURL="&pluginURL;" 
+        launch="&launch;"
+        icon="&icon;"
+        min="&min;">
 
 <CHANGES>
-###2026.01.05
+## EmbyStreams
+
+An UnRAID plugin that displays currently active Emby streaming sessions on your dashboard.
+
+### Features
+
+- Dashboard Widget: Real-time view of all active Emby streams directly on your UnRAID dashboard
+- Stream Details: Shows user, client, quality, play method (Direct Play/Transcode)
+- Progress Tracking: Visual progress bar and time display for each stream
+- Thumbnails: Optional media thumbnails for easy identification
+- Transcode Info: See at a glance which streams are transcoding
+- Auto-Refresh: Configurable refresh interval
+- Clean Upgrades: Configuration preserved during plugin updates
+
+### Changelog
+
+#### 2025.01.06
 - Initial release
-- Dashboard widget showing active Emby streams
-- Real-time updates every 30 seconds
-- Shows user, title, progress, and playback status
-- Pause/play indicators
-- Client information display
-- Settings page for Emby server configuration
-- Connection test feature
+- Dashboard widget with real-time stream display
+- Settings page with connection test
+- Thumbnail support
+- Transcode indicator badges
+- Progress tracking
+- Auto-refresh functionality
 </CHANGES>
 
-<!--
-Create directories and initialize default settings
--->
-<FILE Run="/bin/bash">
+<!-- Plugin Icon -->
+<FILE Name="&plugdir;/images/&name;.png">
+<URL>https://raw.githubusercontent.com/&author;/&repo;/&tag;/metadata/images/&name;.png</URL>
+</FILE>
+
+<!-- Pre-Install Script -->
+<FILE Run="/bin/bash" Method="install">
 <INLINE>
-<![CDATA[
 #!/bin/bash
+#
+# EmbyStreams Pre-Install Script
+# Runs BEFORE plugin files are installed
+#
 
-# Create plugin directories
-/bin/mkdir -p /boot/config/plugins/embystreams
-/bin/mkdir -p /usr/local/emhttp/plugins/embystreams
+PLUGIN_NAME="&name;"
+CONFIG_DIR="/boot/config/plugins/${PLUGIN_NAME}"
+EMHTTP_DIR="/usr/local/emhttp/plugins/${PLUGIN_NAME}"
 
-# Create default settings if they don't exist
-if [ ! -f /boot/config/plugins/embystreams/settings.ini ]; then
-  /bin/cat > /boot/config/plugins/embystreams/settings.ini <<'EOFINI'
-emby_url=""
-api_key=""
-EOFINI
-  /bin/chmod 644 /boot/config/plugins/embystreams/settings.ini
+echo "Installing EmbyStreams plugin..."
+
+# Create necessary directories
+mkdir -p "${CONFIG_DIR}"
+mkdir -p "${EMHTTP_DIR}/images"
+mkdir -p "${EMHTTP_DIR}/include"
+
+# Backup existing configuration if upgrading
+if [ -f "${CONFIG_DIR}/${PLUGIN_NAME}.cfg" ]; then
+    echo "Backing up existing configuration..."
+    cp "${CONFIG_DIR}/${PLUGIN_NAME}.cfg" "${CONFIG_DIR}/${PLUGIN_NAME}.cfg.bak"
 fi
 
-echo "----------------------------------------"
-echo " Emby Streams Plugin"
-echo " Initializing directories and settings"
-echo "----------------------------------------"
-]]>
+# Check minimum Unraid version
+UNRAID_VERSION=$(cat /etc/unraid-version 2>/dev/null | grep -oP 'version="\K[^"]+' || echo "0.0.0")
+MIN_VERSION="&min;"
+
+version_compare() {
+    if [[ $1 == $2 ]]; then
+        return 0
+    fi
+    local IFS=.
+    local i ver1=($1) ver2=($2)
+    for ((i=${#ver1[@]}; i&lt;${#ver2[@]}; i++)); do
+        ver1[i]=0
+    done
+    for ((i=0; i&lt;${#ver1[@]}; i++)); do
+        if [[ -z ${ver2[i]} ]]; then
+            ver2[i]=0
+        fi
+        if ((10#${ver1[i]} > 10#${ver2[i]})); then
+            return 1
+        fi
+        if ((10#${ver1[i]} &lt; 10#${ver2[i]})); then
+            return 2
+        fi
+    done
+    return 0
+}
+
+version_compare "${UNRAID_VERSION}" "${MIN_VERSION}"
+result=$?
+if [ $result -eq 2 ]; then
+    echo "WARNING: This plugin is designed for Unraid ${MIN_VERSION} or later"
+    echo "Current version: ${UNRAID_VERSION}"
+    echo "Plugin may not work correctly on older versions"
+fi
+
+echo "Pre-install completed"
+exit 0
 </INLINE>
 </FILE>
 
-<!--
-Download PHP backend from GitHub
--->
-<FILE Name="/usr/local/emhttp/plugins/embystreams/embystreams.php">
-<INLINE>
-<![CDATA[
-<?php
-/* Copyright 2026, YOUR_NAME
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License version 2,
- * as published by the Free Software Foundation.
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- */
-
-// Configuration
-$cfg_file = '/boot/config/plugins/embystreams/settings.ini';
-$cfg = file_exists($cfg_file) ? parse_ini_file($cfg_file) : ['emby_url' => '', 'api_key' => ''];
-
-/**
- * Fetch active sessions from Emby API
- */
-function getEmbySessions($url, $key) {
-    if (empty($url) || empty($key)) {
-        return ['error' => 'Missing URL or API key'];
-    }
-    
-    // Clean URL
-    $url = rtrim($url, '/');
-    $endpoint = "$url/Sessions?api_key=" . urlencode($key);
-
-    $ch = curl_init();
-    curl_setopt_array($ch, [
-        CURLOPT_URL => $endpoint,
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT => 3,
-        CURLOPT_CONNECTTIMEOUT => 2,
-        CURLOPT_SSL_VERIFYPEER => false,
-        CURLOPT_FOLLOWLOCATION => true,
-        CURLOPT_MAXREDIRS => 2
-    ]);
-    
-    $response = curl_exec($ch);
-    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $curl_error = curl_error($ch);
-    curl_close($ch);
-
-    if ($curl_error) {
-        return ['error' => 'Connection failed: ' . $curl_error];
-    }
-
-    if ($http_code !== 200) {
-        return ['error' => 'HTTP ' . $http_code];
-    }
-
-    $data = json_decode($response, true);
-    return $data ?? ['error' => 'Invalid JSON response'];
-}
-
-/**
- * Render active streams for dashboard widget
- */
-if (isset($_GET['action']) && $_GET['action'] === 'update') {
-    header('Content-Type: text/html; charset=utf-8');
-    
-    $sessions = getEmbySessions($cfg['emby_url'], $cfg['api_key']);
-    
-    // Handle errors
-    if (isset($sessions['error'])) {
-        echo "<tr><td colspan='3'><div style='color:#e74c3c; padding:10px; text-align:center;'>⚠ " . htmlspecialchars($sessions['error']) . "</div></td></tr>";
-        exit();
-    }
-
-    // Filter for active streams
-    $active_streams = [];
-    if (!empty($sessions) && is_array($sessions)) {
-        foreach ($sessions as $s) {
-            if (isset($s['NowPlayingItem']) && isset($s['PlayState'])) {
-                $ticks = $s['PlayState']['PositionTicks'] ?? 0;
-                $total = $s['NowPlayingItem']['RunTimeTicks'] ?? 1;
-                $percent = ($total > 0) ? round(($ticks / $total) * 100) : 0;
-                
-                $is_paused = isset($s['PlayState']['IsPaused']) && $s['PlayState']['IsPaused'];
-                
-                $active_streams[] = [
-                    'user' => $s['UserName'] ?? 'Unknown User',
-                    'title' => $s['NowPlayingItem']['Name'] ?? 'Unknown Title',
-                    'percent' => $percent,
-                    'paused' => $is_paused,
-                    'client' => $s['Client'] ?? 'Unknown'
-                ];
-            }
-        }
-    }
-
-    // Render output
-    if (empty($active_streams)) {
-        echo "<tr><td colspan='3'><div style='color:#888; text-align:center; padding:15px;'>No active streams</div></td></tr>";
-    } else {
-        foreach ($active_streams as $stream) {
-            $status_icon = $stream['paused'] ? '⏸' : '▶';
-            $status_color = $stream['paused'] ? '#f39c12' : '#2ecc71';
-            
-            echo "<tr>
-                    <td style='width:30%; padding:8px;'>
-                        <strong>" . htmlspecialchars($stream['user']) . "</strong>
-                    </td>
-                    <td style='padding:8px;'>
-                        <div style='font-size:12px; margin-bottom:2px;'>" . htmlspecialchars($stream['title']) . "</div>
-                        <div style='font-size:10px; color:#888; margin-bottom:4px;'>" . htmlspecialchars($stream['client']) . "</div>
-                        <div style='background:#1a1a1a; height:4px; width:100%; border-radius:2px; overflow:hidden;'>
-                            <div style='background:{$status_color}; height:4px; width:{$stream['percent']}%; transition: width 0.3s ease;'></div>
-                        </div>
-                    </td>
-                    <td style='width:10%; text-align:center; padding:8px; font-size:18px; color:{$status_color};'>
-                        {$status_icon}
-                    </td>
-                  </tr>";
-        }
-    }
-    exit();
-}
-
-/**
- * Handle settings save
- */
-if (isset($_POST['save_settings'])) {
-    // Sanitize inputs
-    $emby_url = filter_var($_POST['emby_url'] ?? '', FILTER_SANITIZE_URL);
-    $api_key = preg_replace('/[^a-zA-Z0-9]/', '', $_POST['api_key'] ?? '');
-    
-    // Validate URL format
-    if (!empty($emby_url) && !filter_var($emby_url, FILTER_VALIDATE_URL)) {
-        http_response_code(400);
-        echo json_encode(['error' => 'Invalid URL format']);
-        exit();
-    }
-    
-    // Save settings
-    $save_data = "emby_url=\"" . addslashes($emby_url) . "\"\n";
-    $save_data .= "api_key=\"" . addslashes($api_key) . "\"\n";
-    
-    if (file_put_contents($cfg_file, $save_data) !== false) {
-        echo json_encode(['success' => true, 'message' => 'Settings saved successfully']);
-    } else {
-        http_response_code(500);
-        echo json_encode(['error' => 'Failed to save settings']);
-    }
-    exit();
-}
-
-// Test connection endpoint
-if (isset($_GET['action']) && $_GET['action'] === 'test') {
-    $test_url = $_GET['url'] ?? $cfg['emby_url'];
-    $test_key = $_GET['key'] ?? $cfg['api_key'];
-    
-    $result = getEmbySessions($test_url, $test_key);
-    
-    if (isset($result['error'])) {
-        echo json_encode(['success' => false, 'message' => $result['error']]);
-    } else {
-        echo json_encode(['success' => true, 'message' => 'Connection successful!']);
-    }
-    exit();
-}
-?>
-]]>
-</INLINE>
+<!-- Settings Page -->
+<FILE Name="&plugdir;/&name;.page">
+<URL>&srcURL;/embystreams.page</URL>
 </FILE>
 
-<!--
-Download Dashboard page from GitHub
--->
-<FILE Name="/usr/local/emhttp/plugins/embystreams/EmbyStreamsDash.page">
-<INLINE>
-<![CDATA[
-Menu="Dashboard"
-Title="Emby Streams"
-Icon="embystreams.png"
----
-<?php
-/* Copyright 2026, YOUR_NAME
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License version 2,
- * as published by the Free Software Foundation.
- */
-
-$cfg = parse_ini_file('/boot/config/plugins/embystreams/settings.ini');
-?>
-<tbody id="emby-streams-tbody">
-    <tr>
-        <td colspan='3'><div style='text-align:center; color:#888; padding:15px;'>Loading Emby streams...</div></td>
-    </tr>
-</tbody>
-
-<script>
-(function() {
-    var updateInterval;
-    
-    function updateEmbyStreams() {
-        if (typeof jQuery === 'undefined') {
-            return;
-        }
-        
-        jQuery.ajax({
-            url: '/plugins/embystreams/embystreams.php?action=update',
-            method: 'GET',
-            timeout: 5000,
-            success: function(data) {
-                jQuery('#emby-streams-tbody').html(data);
-            },
-            error: function() {
-                jQuery('#emby-streams-tbody').html(
-                    '<tr><td colspan="3"><div style="color:#e74c3c; text-align:center; padding:15px;">Failed to load streams. Check settings.</div></td></tr>'
-                );
-            }
-        });
-    }
-    
-    jQuery(document).ready(function() {
-        updateEmbyStreams();
-        updateInterval = setInterval(updateEmbyStreams, 30000);
-    });
-    
-    jQuery(window).on('unload', function() {
-        if (updateInterval) {
-            clearInterval(updateInterval);
-        }
-    });
-})();
-</script>
-]]>
-</INLINE>
+<!-- Dashboard Widget Page -->
+<FILE Name="&plugdir;/NewDashboard.page">
+<URL>&srcURL;/NewDashboard.page</URL>
 </FILE>
 
-<!--
-Download Settings page from GitHub
--->
-<FILE Name="/usr/local/emhttp/plugins/embystreams/EmbyStreamsSettings.page">
-<INLINE>
-<![CDATA[
-Menu="Settings"
-Title="Emby Streams"
-Icon="embystreams.png"
----
-<?php
-/* Copyright 2026, YOUR_NAME
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License version 2,
- * as published by the Free Software Foundation.
- */
-
-$cfg = parse_ini_file('/boot/config/plugins/embystreams/settings.ini');
-?>
-
-<form id="emby_settings_form" method="POST" onsubmit="return false;">
-    <dl>
-        <dt>Emby Server URL:</dt>
-        <dd>
-            <input type="text" 
-                   id="emby_url" 
-                   name="emby_url" 
-                   value="<?= htmlspecialchars($cfg['emby_url'] ?? '', ENT_QUOTES) ?>" 
-                   placeholder="http://192.168.1.10:8096" 
-                   style="width: 400px;">
-            <p style="margin: 5px 0 0 0; color: #888; font-size: 11px;">
-                Example: http://192.168.1.100:8096 (no trailing slash)
-            </p>
-        </dd>
-        
-        <dt>API Key:</dt>
-        <dd>
-            <input type="text" 
-                   id="api_key" 
-                   name="api_key" 
-                   value="<?= htmlspecialchars($cfg['api_key'] ?? '', ENT_QUOTES) ?>" 
-                   placeholder="Enter your Emby API key"
-                   style="width: 400px;">
-            <p style="margin: 5px 0 0 0; color: #888; font-size: 11px;">
-                Find this in Emby: Dashboard → Advanced → API Keys
-            </p>
-        </dd>
-    </dl>
-    
-    <div style="margin-top: 20px;">
-        <input type="button" value="Test Connection" onclick="testEmbyConnection();" style="margin-right: 10px;">
-        <input type="button" value="Apply" onclick="saveEmbySettings();">
-        <span id="save_status" style="margin-left: 15px; font-weight: bold;"></span>
-    </div>
-</form>
-
-<script>
-function testEmbyConnection() {
-    var url = jQuery('#emby_url').val();
-    var key = jQuery('#api_key').val();
-    
-    if (!url || !key) {
-        jQuery('#save_status').css('color', '#e74c3c').text('Please fill in both fields');
-        return;
-    }
-    
-    jQuery('#save_status').css('color', '#3498db').text('Testing connection...');
-    
-    jQuery.ajax({
-        url: '/plugins/embystreams/embystreams.php?action=test',
-        data: { url: url, key: key },
-        dataType: 'json',
-        success: function(response) {
-            if (response.success) {
-                jQuery('#save_status').css('color', '#2ecc71').text('✓ ' + response.message);
-            } else {
-                jQuery('#save_status').css('color', '#e74c3c').text('✗ ' + response.message);
-            }
-        },
-        error: function() {
-            jQuery('#save_status').css('color', '#e74c3c').text('✗ Connection test failed');
-        }
-    });
-}
-
-function saveEmbySettings() {
-    var formData = jQuery('#emby_settings_form').serialize() + '&save_settings=true';
-    
-    jQuery('#save_status').css('color', '#3498db').text('Saving...');
-    
-    jQuery.ajax({
-        url: '/plugins/embystreams/embystreams.php',
-        method: 'POST',
-        data: formData,
-        dataType: 'json',
-        success: function(response) {
-            if (response.success) {
-                jQuery('#save_status').css('color', '#2ecc71').text('✓ Settings saved!');
-                setTimeout(function() {
-                    jQuery('#save_status').fadeOut(500, function() {
-                        jQuery(this).text('').show();
-                    });
-                }, 3000);
-            } else {
-                jQuery('#save_status').css('color', '#e74c3c').text('✗ ' + (response.error || 'Save failed'));
-            }
-        },
-        error: function(xhr) {
-            var errorMsg = 'Failed to save settings';
-            try {
-                var response = JSON.parse(xhr.responseText);
-                errorMsg = response.error || errorMsg;
-            } catch(e) {}
-            jQuery('#save_status').css('color', '#e74c3c').text('✗ ' + errorMsg);
-        }
-    });
-}
-</script>
-
-<style>
-dt { font-weight: bold; margin-top: 15px; }
-dd { margin-left: 0; margin-bottom: 10px; }
-input[type="text"] { 
-    padding: 6px 10px; 
-    border: 1px solid #444; 
-    background: #1a1a1a; 
-    color: #fff;
-    border-radius: 3px;
-}
-input[type="button"] {
-    padding: 8px 20px;
-    cursor: pointer;
-}
-</style>
-]]>
-</INLINE>
+<!-- PHP API Helper -->
+<FILE Name="&plugdir;/include/EmbyAPI.php">
+<URL>&srcURL;/include/EmbyAPI.php</URL>
 </FILE>
 
-<!--
-Plugin icon (Base64 encoded PNG)
--->
-<FILE Name="/usr/local/emhttp/plugins/embystreams/embystreams.png">
-<INLINE>
-iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAACXBIWXMAAAsTAAALEwEAmpwYAAADzElEQVR4nO2ZXWwUVRTHf3dmZ7vdli5tS6FQKEWhfCkQQEBREVFBfRCJhvhBjPGBB+MDxAcTY3w0xgdNjPHBGGN88AsTjQ8aE0VFQQRBqYJCKVBKS6G0W7rdj9nZnXFuZ7aU0m53prtd4j/ZZHfuzL3n/86559w7c2Euczk7Evn/XsBspqXEgRuLJuI9cdytceZjV1aLhYOPjhK7V7M4keNsQJy//nCJSqprzFe74hx2w+zrtFbSJGJXr1JcBYJRMqhKOBLBcgTRqoAqPEuF6GUMdH6PbN7Pxro4VceaAHK9Ac5/a1ixPM5H1dF+7lv1CqvnRdk11IKYCmA+LoYTc1OjZtQFoKevhVMOJOaFuT2xlfV5M+Z2rqiOxnXvsu7iSRRhKkBqaBh39HJACm9JqA6YD47TSYL18cX8NfQ3rxzbzy31V+GcP4s9vE9KKmT0y2kSPQ6Nm0oUzEucQ5q/48qmr/ncGeeYM8TVdSuYXxth8addbMpeoDd2kPnXxZAzfTj7PqL3yF80P7BqknUL6nBbukgN5oqFoC0AX6/hzJkMsXCIV5t2snZeA0eaD/PqiQOMJYeJ/Hieu4Y6p0xhXq+h//tBsudSvLg2gb0wiiiuoP/rdqy+y4WBU/JW+HUfnWN2QZj4wQu0vnCIi6NZBEPq1xd5eHh3IYHpEkfQvddo3RNi7XUVhUG+ZpI7p5EzKRofDGPFRZ8D/SeWOqPb++Av3aZj7zIWfdjLjzuGdJApWP/dx3TYQ/R9tBxzNK2TaHSk3s7rFP7aDlrrqskNpUg9uhR5sQP7uyeQz2/A/vYxhPHuaWQmE4p8xGfg/6zIcb5LgUn7V5r5Y/S+s5rKH0+Q+OAG5Id3Ev7mHuTPj+De9jbigx30/9hFrtfCqgtP6F/Q/j0pyFPLlcDjkVGaXvxQ32tvfJb0+uXY6wfp/W+Y7LwQzg1D9Pw9gF1dofc1z/TStXGEcNsV5Jl+xLmuvhAp+i/kTq0EppNfJWF+9VpGdm/G/vJx0p9sZeSpZ8kM5xAf7KZxwyu6kpv9gP32Q8j+MX2BHMRZ6E9gtoYQG58jtW0Z/R/8hjMY5bpnwqReXMfoN79htV9k7OZKnNtrUctruJK4gtF3gNi3fyHf24O4+Sgs/1fXuqlnARg7vyXd+Rdizw94KcTe86Zuk3f3SsxVz2FubAaJQPYi/+l+2pspJ/AXt9Yr8zfq32/1AABAG7p3xOuL+X9/xAzp//qh+38C5zKXy0L+A12LCJgYVJlGAAAAAElFTkSuQmCC
-</INLINE>
+<!-- PHP Helper Functions -->
+<FILE Name="&plugdir;/include/helpers.php">
+<URL>&srcURL;/include/helpers.php</URL>
 </FILE>
 
-<!--
-README documentation
--->
-<FILE Name="/usr/local/emhttp/plugins/embystreams/README.md">
-<INLINE>
-<![CDATA[
-# Emby Streams Plugin for Unraid
-
-Displays active Emby media streams on your Unraid Dashboard.
-
-## Features
-- Real-time stream monitoring on dashboard
-- Shows user, title, progress, and playback status
-- Auto-refreshes every 30 seconds
-- Pause/play indicators
-- Client information display
-- Movable dashboard tile
-
-## Setup
-1. Install the plugin from GitHub or Community Applications
-2. Go to Settings → Emby Streams
-3. Enter your Emby Server URL (e.g., http://192.168.1.100:8096)
-4. Enter your API Key (found in Emby: Dashboard → Advanced → API Keys)
-5. Click "Test Connection" to verify
-6. Click "Apply" to save
-7. View the widget on your Dashboard (you can unlock and move it)
-
-## Requirements
-- Emby Server running and accessible
-- Valid API key from Emby
-- Unraid 6.9.0 or higher
-
-## Troubleshooting
-- If streams don't appear, verify your Emby URL and API key in settings
-- Check that your Emby server is accessible from your Unraid server
-- Ensure the Emby API is enabled in your Emby settings
-- The dashboard tile can be moved by unlocking the dashboard
-
-## Support
-Report issues at: https://github.com/YOUR_GITHUB_USERNAME/unraid-embystreams/issues
-
-## Version
-2026.01.05
-]]>
-</INLINE>
+<!-- AJAX Endpoint -->
+<FILE Name="&plugdir;/include/ajax.php">
+<URL>&srcURL;/include/ajax.php</URL>
 </FILE>
 
-<!--
-Set proper permissions after all files are created
--->
-<FILE Run="/bin/bash">
+<!-- Default Configuration -->
+<FILE Name="&plugdir;/default.cfg">
+<URL>&srcURL;/default.cfg</URL>
+</FILE>
+
+<!-- Post-Install Script -->
+<FILE Run="/bin/bash" Method="install">
 <INLINE>
-<![CDATA[
 #!/bin/bash
+#
+# EmbyStreams Post-Install Script
+# Runs AFTER all plugin files are installed
+#
 
-# Set correct permissions
-/bin/chmod 644 /usr/local/emhttp/plugins/embystreams/*.php 2>/dev/null
-/bin/chmod 644 /usr/local/emhttp/plugins/embystreams/*.page 2>/dev/null
-/bin/chmod 644 /usr/local/emhttp/plugins/embystreams/*.png 2>/dev/null
-/bin/chmod 644 /usr/local/emhttp/plugins/embystreams/README.md 2>/dev/null
+PLUGIN_NAME="&name;"
+CONFIG_DIR="/boot/config/plugins/${PLUGIN_NAME}"
+EMHTTP_DIR="/usr/local/emhttp/plugins/${PLUGIN_NAME}"
+DEFAULT_CFG="${EMHTTP_DIR}/default.cfg"
+USER_CFG="${CONFIG_DIR}/${PLUGIN_NAME}.cfg"
 
-echo "----------------------------------------"
-echo " Emby Streams Plugin Installed!"
-echo " Version: &version;"
-echo " Go to Settings > Emby Streams to configure"
-echo "----------------------------------------"
-]]>
+# Create user config from default if it doesn't exist
+if [ ! -f "${USER_CFG}" ]; then
+    if [ -f "${DEFAULT_CFG}" ]; then
+        echo "Creating default configuration..."
+        cp "${DEFAULT_CFG}" "${USER_CFG}"
+    fi
+fi
+
+# Restore backed up configuration (preserving user settings during upgrade)
+if [ -f "${CONFIG_DIR}/${PLUGIN_NAME}.cfg.bak" ]; then
+    echo "Restoring configuration from backup..."
+    
+    # Merge old config with new defaults (keeping user values)
+    if [ -f "${DEFAULT_CFG}" ] &amp;&amp; [ -f "${USER_CFG}" ]; then
+        while IFS='=' read -r key value; do
+            # Skip comments and empty lines
+            [[ "$key" =~ ^[[:space:]]*# ]] &amp;&amp; continue
+            [[ -z "$key" ]] &amp;&amp; continue
+            
+            # Clean the key
+            key=$(echo "$key" | tr -d ' "')
+            
+            # Check if key exists in backup
+            if grep -q "^${key}=" "${CONFIG_DIR}/${PLUGIN_NAME}.cfg.bak" 2>/dev/null; then
+                # Use value from backup
+                backup_value=$(grep "^${key}=" "${CONFIG_DIR}/${PLUGIN_NAME}.cfg.bak" | cut -d'=' -f2-)
+                sed -i "s|^${key}=.*|${key}=${backup_value}|" "${USER_CFG}"
+            fi
+        done &lt; "${DEFAULT_CFG}"
+    fi
+    
+    rm -f "${CONFIG_DIR}/${PLUGIN_NAME}.cfg.bak"
+    echo "Configuration restored"
+fi
+
+# Set proper permissions
+chmod 644 "${USER_CFG}" 2>/dev/null
+chmod -R 755 "${EMHTTP_DIR}"
+
+echo "EmbyStreams installation completed successfully"
+echo "Configure the plugin at Settings -> EmbyStreams"
+exit 0
 </INLINE>
 </FILE>
 
-<!--
-Remove plugin files on uninstall
--->
+<!-- Upgrade Script -->
+<FILE Run="/bin/bash" Method="install">
+<INLINE>
+#!/bin/bash
+#
+# EmbyStreams Upgrade Script
+# Handles version-specific migrations
+#
+
+PLUGIN_NAME="&name;"
+CONFIG_DIR="/boot/config/plugins/${PLUGIN_NAME}"
+VERSION_FILE="${CONFIG_DIR}/version"
+USER_CFG="${CONFIG_DIR}/${PLUGIN_NAME}.cfg"
+
+# Get current installed version (if any)
+CURRENT_VERSION=""
+if [ -f "${VERSION_FILE}" ]; then
+    CURRENT_VERSION=$(cat "${VERSION_FILE}")
+fi
+
+# New version being installed
+NEW_VERSION="&version;"
+
+echo "EmbyStreams: Upgrading from ${CURRENT_VERSION:-new install} to ${NEW_VERSION}"
+
+# Version comparison helper
+version_less_than() {
+    local ver1="$1"
+    local ver2="$2"
+    
+    if [[ "$ver1" == "$ver2" ]]; then
+        return 1
+    fi
+    
+    local IFS=.
+    local i v1=($ver1) v2=($ver2)
+    
+    for ((i=0; i&lt;${#v1[@]} || i&lt;${#v2[@]}; i++)); do
+        local n1=${v1[i]:-0}
+        local n2=${v2[i]:-0}
+        if ((n1 &lt; n2)); then
+            return 0
+        elif ((n1 > n2)); then
+            return 1
+        fi
+    done
+    return 1
+}
+
+# Version-specific migrations
+if [ -n "${CURRENT_VERSION}" ] &amp;&amp; [ -f "${USER_CFG}" ]; then
+    # Add migrations here as needed
+    :
+fi
+
+# Save new version
+echo "${NEW_VERSION}" > "${VERSION_FILE}"
+
+echo "EmbyStreams upgrade completed"
+exit 0
+</INLINE>
+</FILE>
+
+<!-- Removal Script -->
 <FILE Run="/bin/bash" Method="remove">
 <INLINE>
 <![CDATA[
 #!/bin/bash
+#
+# EmbyStreams Removal Script
+# Cleanup when plugin is uninstalled
+#
 
-echo "Removing Emby Streams plugin..."
+PLUGIN_NAME="embystreams"
+CONFIG_DIR="/boot/config/plugins/${PLUGIN_NAME}"
+EMHTTP_DIR="/usr/local/emhttp/plugins/${PLUGIN_NAME}"
 
-/bin/rm -rf /usr/local/emhttp/plugins/embystreams
-/bin/rm -rf /boot/config/plugins/embystreams
+echo "Removing EmbyStreams plugin..."
 
-echo "Emby Streams plugin removed successfully"
+# Remove runtime files
+rm -rf "${EMHTTP_DIR}"
+
+# Remove temporary/cache files
+rm -rf /tmp/${PLUGIN_NAME}*
+
+# Configuration is preserved for reinstall
+# User can manually delete if desired
+echo ""
+echo "Configuration preserved at: ${CONFIG_DIR}"
+echo "To completely remove all data, manually delete: ${CONFIG_DIR}"
+echo ""
+
+# Uncomment to auto-remove config:
+# rm -rf "${CONFIG_DIR}"
+
+echo "EmbyStreams removal completed"
+exit 0
 ]]>
 </INLINE>
 </FILE>

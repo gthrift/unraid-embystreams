@@ -1,0 +1,496 @@
+Menu="Dashboard"
+Type="xmenu"
+Title="Emby Streams"
+Tag="embystreams"
+---
+<?PHP
+/* Copyright 2025
+ *
+ * EmbyStreams - Dashboard Widget
+ * Shows current Emby streaming sessions on the UnRAID Dashboard
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2,
+ * as published by the Free Software Foundation.
+ */
+
+$plugin = "embystreams";
+$docroot = $docroot ?? $_SERVER['DOCUMENT_ROOT'] ?: '/usr/local/emhttp';
+
+require_once("{$docroot}/plugins/{$plugin}/include/helpers.php");
+
+// Load configuration
+$cfg = embystreams_getConfig();
+$isConfigured = !empty($cfg['EMBY_URL']) && !empty($cfg['EMBY_API_KEY']);
+$refreshInterval = max(5, intval($cfg['REFRESH_INTERVAL'] ?? 10)) * 1000;
+$showThumbnails = ($cfg['SHOW_THUMBNAILS'] ?? 'yes') === 'yes';
+$showTranscode = ($cfg['SHOW_TRANSCODE_INFO'] ?? 'yes') === 'yes';
+?>
+
+<!-- EmbyStreams Dashboard Widget Styles -->
+<style>
+#embystreams-widget {
+    min-height: 80px;
+}
+
+#embystreams-widget .widget-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border-color, #ddd);
+    margin-bottom: 10px;
+}
+
+#embystreams-widget .widget-title {
+    font-weight: bold;
+    font-size: 1.1em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+#embystreams-widget .widget-title i {
+    color: #52b54b; /* Emby green */
+}
+
+#embystreams-widget .stream-count {
+    font-size: 0.9em;
+    padding: 3px 10px;
+    border-radius: 12px;
+    background: var(--button-background, #e0e0e0);
+    color: var(--button-text, #333);
+}
+
+#embystreams-widget .stream-count.active {
+    background: #52b54b;
+    color: white;
+}
+
+#embystreams-widget .widget-content {
+    padding: 5px 0;
+}
+
+#embystreams-widget .no-config {
+    text-align: center;
+    padding: 15px;
+    color: var(--text-secondary, #666);
+}
+
+#embystreams-widget .no-config a {
+    color: #52b54b;
+}
+
+#embystreams-widget .no-streams {
+    text-align: center;
+    padding: 15px;
+    color: var(--text-secondary, #666);
+    font-style: italic;
+}
+
+#embystreams-widget .stream-item {
+    display: flex;
+    align-items: center;
+    padding: 8px;
+    margin: 4px 0;
+    background: var(--row-background, #f9f9f9);
+    border-radius: 6px;
+    transition: background 0.2s;
+}
+
+#embystreams-widget .stream-item:hover {
+    background: var(--row-background-hover, #f0f0f0);
+}
+
+#embystreams-widget .stream-thumb {
+    width: 60px;
+    height: 34px;
+    min-width: 60px;
+    object-fit: cover;
+    border-radius: 4px;
+    margin-right: 10px;
+    background: #222;
+}
+
+#embystreams-widget .stream-info {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+}
+
+#embystreams-widget .stream-title {
+    font-weight: 500;
+    font-size: 0.95em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 2px;
+}
+
+#embystreams-widget .stream-meta {
+    font-size: 0.8em;
+    color: var(--text-secondary, #666);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#embystreams-widget .stream-status {
+    text-align: right;
+    min-width: 70px;
+    margin-left: 10px;
+}
+
+#embystreams-widget .stream-status-icon {
+    font-size: 1em;
+}
+
+#embystreams-widget .stream-status-icon.playing {
+    color: #4caf50;
+}
+
+#embystreams-widget .stream-status-icon.paused {
+    color: #ff9800;
+}
+
+#embystreams-widget .stream-progress {
+    font-size: 0.8em;
+    color: var(--text-secondary, #666);
+}
+
+#embystreams-widget .stream-progress-bar {
+    width: 60px;
+    height: 4px;
+    background: var(--border-color, #ddd);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 3px;
+}
+
+#embystreams-widget .stream-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #52b54b, #7cb342);
+    transition: width 0.5s ease;
+}
+
+#embystreams-widget .stream-method {
+    font-size: 0.7em;
+    padding: 1px 5px;
+    border-radius: 3px;
+    margin-left: 5px;
+    text-transform: uppercase;
+}
+
+#embystreams-widget .stream-method.direct {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+#embystreams-widget .stream-method.transcode {
+    background: #fff3e0;
+    color: #ef6c00;
+}
+
+#embystreams-widget .widget-footer {
+    padding-top: 8px;
+    border-top: 1px solid var(--border-color-light, #eee);
+    text-align: right;
+    margin-top: 8px;
+}
+
+#embystreams-widget .widget-footer a {
+    font-size: 0.85em;
+    color: var(--link-color, #52b54b);
+    text-decoration: none;
+}
+
+#embystreams-widget .widget-footer a:hover {
+    text-decoration: underline;
+}
+
+#embystreams-widget .error-state {
+    text-align: center;
+    padding: 15px;
+    color: #c62828;
+}
+
+#embystreams-widget .loading-spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #52b54b;
+    border-radius: 50%;
+    animation: embystreams-spin 1s linear infinite;
+}
+
+@keyframes embystreams-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+</style>
+
+<!-- EmbyStreams Dashboard Widget HTML -->
+<tbody id="embystreams-widget">
+    <tr>
+        <td colspan="2">
+            <div class="widget-header">
+                <span class="widget-title">
+                    <i class="fa fa-play-circle"></i>
+                    <span>_(Emby Streams)_</span>
+                </span>
+                <span id="embystreams-count" class="stream-count">
+                    <span class="loading-spinner"></span>
+                </span>
+            </div>
+            
+            <div class="widget-content" id="embystreams-content">
+                <?php if (!$isConfigured): ?>
+                <div class="no-config">
+                    <i class="fa fa-cog"></i><br>
+                    <a href="/Settings/EmbyStreams">_(Configure EmbyStreams)_</a>
+                </div>
+                <?php else: ?>
+                <div class="no-streams">
+                    <span class="loading-spinner"></span> _(Loading...)_
+                </div>
+                <?php endif; ?>
+            </div>
+            
+            <div class="widget-footer">
+                <a href="/Settings/EmbyStreams">
+                    _(Settings)_ <i class="fa fa-cog"></i>
+                </a>
+            </div>
+        </td>
+    </tr>
+</tbody>
+
+<!-- EmbyStreams Dashboard Widget JavaScript -->
+<script>
+$(function() {
+    'use strict';
+    
+    const isConfigured = <?=$isConfigured ? 'true' : 'false'?>;
+    const refreshInterval = <?=$refreshInterval?>;
+    const showThumbnails = <?=$showThumbnails ? 'true' : 'false'?>;
+    const showTranscode = <?=$showTranscode ? 'true' : 'false'?>;
+    const ajaxUrl = '/plugins/<?=$plugin?>/include/ajax.php';
+    
+    let updateTimer = null;
+    let isVisible = true;
+    
+    const $widget = $('#embystreams-widget');
+    const $content = $('#embystreams-content');
+    const $count = $('#embystreams-count');
+    
+    /**
+     * Update stream count badge
+     */
+    function updateCount(count) {
+        if (count > 0) {
+            $count.addClass('active').text(count);
+        } else {
+            $count.removeClass('active').text('0');
+        }
+    }
+    
+    /**
+     * Show error state
+     */
+    function showError(message) {
+        $content.html('<div class="error-state"><i class="fa fa-exclamation-triangle"></i> ' + 
+                     escapeHtml(message) + '</div>');
+        updateCount(0);
+    }
+    
+    /**
+     * Fetch and display streams
+     */
+    function fetchStreams() {
+        if (!isVisible || !isConfigured) return;
+        
+        $.ajax({
+            url: ajaxUrl,
+            data: { action: 'getSessions' },
+            dataType: 'json',
+            timeout: 10000
+        })
+        .done(function(response) {
+            if (!response.success) {
+                showError(response.error || _('Failed to load'));
+                return;
+            }
+            
+            renderStreams(response.sessions || []);
+        })
+        .fail(function(xhr, status, error) {
+            showError(_('Connection error'));
+        });
+    }
+    
+    /**
+     * Render stream list
+     */
+    function renderStreams(sessions) {
+        updateCount(sessions.length);
+        
+        if (sessions.length === 0) {
+            $content.html('<div class="no-streams"><i class="fa fa-film"></i> ' + 
+                         _('No active streams') + '</div>');
+            return;
+        }
+        
+        let html = '';
+        
+        sessions.forEach(function(session) {
+            html += '<div class="stream-item">';
+            
+            // Thumbnail
+            if (showThumbnails && session.imageUrl) {
+                html += '<img src="' + escapeHtml(session.imageUrl) + '" ' +
+                       'class="stream-thumb" ' +
+                       'onerror="this.style.visibility=\'hidden\'" ' +
+                       'loading="lazy">';
+            }
+            
+            // Info
+            html += '<div class="stream-info">';
+            html += '<div class="stream-title" title="' + escapeHtml(session.title) + '">';
+            html += escapeHtml(session.title);
+            html += '</div>';
+            
+            html += '<div class="stream-meta">';
+            html += '<i class="fa fa-user"></i> ' + escapeHtml(session.userName);
+            html += ' &bull; ' + escapeHtml(session.client);
+            
+            // Quality badge
+            if (session.quality) {
+                html += ' &bull; ' + escapeHtml(session.quality);
+            }
+            
+            // Play method badge
+            if (showTranscode) {
+                const methodClass = session.playMethod.toLowerCase().includes('transcode') ? 'transcode' : 'direct';
+                html += '<span class="stream-method ' + methodClass + '">' + 
+                       escapeHtml(session.playMethod) + '</span>';
+            }
+            
+            html += '</div></div>';
+            
+            // Status
+            html += '<div class="stream-status">';
+            
+            // Play/pause icon
+            const statusClass = session.isPaused ? 'paused' : 'playing';
+            const statusIcon = session.isPaused ? 'fa-pause' : 'fa-play';
+            html += '<i class="fa ' + statusIcon + ' stream-status-icon ' + statusClass + '"></i> ';
+            
+            // Progress
+            html += '<div class="stream-progress">' + formatProgress(session) + '</div>';
+            html += '<div class="stream-progress-bar">';
+            html += '<div class="stream-progress-fill" style="width: ' + Math.round(session.progress) + '%;"></div>';
+            html += '</div>';
+            
+            html += '</div>';
+            html += '</div>';
+        });
+        
+        $content.html(html);
+    }
+    
+    /**
+     * Format progress display
+     */
+    function formatProgress(session) {
+        const position = formatTicks(session.positionTicks);
+        const duration = formatTicks(session.runtimeTicks);
+        return position + ' / ' + duration;
+    }
+    
+    /**
+     * Format ticks to MM:SS or HH:MM:SS
+     */
+    function formatTicks(ticks) {
+        if (!ticks) return '0:00';
+        
+        const totalSeconds = Math.floor(ticks / 10000000);
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = totalSeconds % 60;
+        
+        if (hours > 0) {
+            return hours + ':' + padZero(minutes) + ':' + padZero(seconds);
+        }
+        return minutes + ':' + padZero(seconds);
+    }
+    
+    /**
+     * Pad number with leading zero
+     */
+    function padZero(num) {
+        return num < 10 ? '0' + num : num;
+    }
+    
+    /**
+     * Escape HTML special characters
+     */
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+    
+    /**
+     * Translation helper (returns original if no translation)
+     */
+    function _(text) {
+        return text;
+    }
+    
+    /**
+     * Initialize widget
+     */
+    function init() {
+        if (!isConfigured) {
+            updateCount(0);
+            return;
+        }
+        
+        // Initial fetch
+        fetchStreams();
+        
+        // Set up periodic refresh
+        if (refreshInterval > 0) {
+            updateTimer = setInterval(fetchStreams, refreshInterval);
+        }
+        
+        // Pause updates when tab is hidden
+        $(document).on('visibilitychange.embystreams', function() {
+            isVisible = !document.hidden;
+            
+            if (isVisible) {
+                fetchStreams();
+                if (!updateTimer && refreshInterval > 0) {
+                    updateTimer = setInterval(fetchStreams, refreshInterval);
+                }
+            } else if (updateTimer) {
+                clearInterval(updateTimer);
+                updateTimer = null;
+            }
+        });
+    }
+    
+    // Start widget
+    init();
+    
+    // Cleanup on page unload
+    $(window).on('beforeunload.embystreams', function() {
+        if (updateTimer) {
+            clearInterval(updateTimer);
+        }
+        $(document).off('.embystreams');
+    });
+});
+</script>
