@@ -1,69 +1,82 @@
 <?php
-// Load Config
+// Suppress errors to prevent breaking the dashboard JSON/HTML
+error_reporting(0);
+
 $cfg_file = "/boot/config/plugins/embystreams/embystreams.cfg";
+
 if (!file_exists($cfg_file)) {
-    echo "Configuration missing.";
+    echo "<div style='padding:10px'>Configuration file missing.</div>";
     exit;
 }
-$cfg = parse_ini_file($cfg_file);
 
+$cfg = parse_ini_file($cfg_file);
 $host = $cfg['HOST'];
 $port = $cfg['PORT'];
 $key = $cfg['API_KEY'];
 
 if (empty($host) || empty($key)) {
-    echo "Please configure Emby Streams in Settings > User Utilities.";
+    echo "<div style='padding:15px; text-align:center;'>
+            <i class='fa fa-exclamation-triangle'></i><br>
+            Please configure settings<br>
+            <a href='/Settings/EmbyStreamsSettings'>Go to Settings</a>
+          </div>";
     exit;
 }
 
-// Call Emby API
+// Prepare API Call
 $url = "http://$host:$port/emby/Sessions?api_key=$key";
+
 $ch = curl_init();
 curl_setopt($ch, CURLOPT_URL, $url);
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 2);
+curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 2); // Fast timeout to not hang dashboard
+curl_setopt($ch, CURLOPT_TIMEOUT, 3);
 $response = curl_exec($ch);
+$http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 curl_close($ch);
 
-$sessions = json_decode($response, true);
-
-if (!$sessions) {
-    echo "No connection or invalid API key.";
+if ($http_code !== 200 || !$response) {
+    echo "<div style='padding:15px; color: #d44;'>Could not connect to Emby ($host).</div>";
     exit;
 }
 
-// Filter for active playing sessions
+$sessions = json_decode($response, true);
+
+// Filter for playing items
 $active_streams = [];
-foreach ($sessions as $session) {
-    if (isset($session['NowPlayingItem'])) {
-        $active_streams[] = $session;
+if ($sessions) {
+    foreach ($sessions as $session) {
+        if (isset($session['NowPlayingItem'])) {
+            $active_streams[] = $session;
+        }
     }
 }
 
-// Generate HTML Output for Dashboard
 if (count($active_streams) === 0) {
-    echo "<div style='text-align:center; padding:10px;'>No active streams</div>";
+    echo "<div style='padding: 20px; text-align: center; opacity: 0.5;'>No active streams</div>";
 } else {
-    echo "<table>";
-    echo "<thead><tr><th>User</th><th>Playing</th><th>Device</th><th>Status</th></tr></thead>";
+    echo "<table class='tablesorter'>";
+    echo "<thead><tr><th>User</th><th>Playing</th><th>Device</th><th>State</th></tr></thead>";
     echo "<tbody>";
     
     foreach ($active_streams as $s) {
-        $user = $s['UserName'];
-        $title = $s['NowPlayingItem']['Name'];
-        // Provide fallback if Series Name exists (TV Shows)
+        $user = htmlspecialchars($s['UserName']);
+        $title = htmlspecialchars($s['NowPlayingItem']['Name']);
+        
+        // Add Series Name if available
         if (isset($s['NowPlayingItem']['SeriesName'])) {
-            $title = $s['NowPlayingItem']['SeriesName'] . " - " . $title;
+            $title = htmlspecialchars($s['NowPlayingItem']['SeriesName']) . " - " . $title;
         }
         
-        $device = $s['DeviceName'];
-        $paused = isset($s['PlayState']['IsPaused']) && $s['PlayState']['IsPaused'] ? "Paused" : "Playing";
+        $device = htmlspecialchars($s['DeviceName']);
+        $is_paused = isset($s['PlayState']['IsPaused']) && $s['PlayState']['IsPaused'];
+        $status_html = $is_paused ? "<span class='es-status-paused'><i class='fa fa-pause'></i> Paused</span>" : "<span class='es-status-playing'><i class='fa fa-play'></i> Playing</span>";
         
         echo "<tr>";
         echo "<td>$user</td>";
-        echo "<td>$title</td>";
+        echo "<td><div style='max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;' title='$title'>$title</div></td>";
         echo "<td>$device</td>";
-        echo "<td>$paused</td>";
+        echo "<td>$status_html</td>";
         echo "</tr>";
     }
     echo "</tbody></table>";
