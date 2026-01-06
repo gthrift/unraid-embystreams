@@ -72,25 +72,26 @@ if (empty($active_streams)) {
         $tooltip = "$status_text ($play_method)";
 
         // -- HTML Output --
+        // NOTICE: Removed 'w36' and 'w18' classes to prevent Unraid override
         echo "<div class='es-row'>";
         
-        // ADDED CLASS: 'es-name'
-        echo "<span class='w36 es-name' style='white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding-right:10px;' title='$title'>
+        // Name
+        echo "<span class='es-name' style='white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding-right:10px;' title='$title'>
                 $title
               </span>";
         
-        // ADDED CLASS: 'es-device'
-        echo "<span class='w18 es-device' align='center' style='white-space:nowrap; overflow:hidden; text-overflow:ellipsis;' title='$device'>
+        // Device
+        echo "<span class='es-device' align='center' style='white-space:nowrap; overflow:hidden; text-overflow:ellipsis;' title='$device'>
                 $device
               </span>";
               
-        // ADDED CLASS: 'es-user'
-        echo "<span class='w18 es-user' style='white-space:nowrap; overflow:hidden; text-overflow:ellipsis;' title='$user'>
+        // User
+        echo "<span class='es-user' style='white-space:nowrap; overflow:hidden; text-overflow:ellipsis;' title='$user'>
                 <i class='fa fa-user' style='opacity:0.3; margin-right:4px;'></i>$user
               </span>";
               
-        // ADDED CLASS: 'es-state'
-        echo "<span class='w18 es-state' align='right' style='color:$status_color; font-weight:bold; cursor:help;' title='$tooltip'>";
+        // State
+        echo "<span class='es-state' align='right' style='color:$status_color; font-weight:bold; cursor:help;' title='$tooltip'>";
         if ($is_transcoding) {
             echo "<i class='fa fa-exchange es-transcode' title='_(Transcoding)_'></i> ";
         }
