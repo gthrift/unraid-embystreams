@@ -23,4 +23,4 @@ Emby Streams is a lightweight Unraid plugin that adds a real-time dashboard widg
 3. Click on the **Install Plugin** sub-tab.
 4. Copy and paste the following URL into the box:
    ```text
-   [https://raw.githubusercontent.com/gthrift/unraid-embystreams/master/embystreams.plg](https://raw.githubusercontent.com/gthrift/unraid-embystreams/master/embystreams.plg)
+   https://raw.githubusercontent.com/gthrift/unraid-embystreams/master/embystreams.plg
