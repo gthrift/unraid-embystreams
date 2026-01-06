@@ -19,8 +19,18 @@ Cond="parse_ini_file('/boot/config/plugins/embystreams/embystreams.cfg')['DISPLA
     /* Icon styling adjusted for tile-header */
     .emby-icon-img { width: 32px; height: 32px; } 
 
-    /* Row styling */
-    .es-row { display: flex; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); padding: 4px 0; }
+    /* Standard Row Styling (Desktop) */
+    /* We apply this to both the Header and the Data rows so they align perfectly */
+    .es-row, .es-header-row { 
+        display: flex; 
+        align-items: center; 
+        width: 100%;
+    }
+    
+    .es-row { 
+        border-bottom: 1px solid rgba(255,255,255,0.05); 
+        padding: 4px 0; 
+    }
     .es-row:last-child { border-bottom: none; }
     .es-transcode { font-size: 10px; opacity: 0.7; margin-left: 5px; }
 
@@ -32,21 +42,25 @@ Cond="parse_ini_file('/boot/config/plugins/embystreams/embystreams.cfg')['DISPLA
             display: none !important; 
         }
         
-        /* 2. NAME Column (Header & Data) 
-           - Takes remaining width (100% - 80px) 
-           - 'float: left' ensures the Header aligns correctly */
-        .w36, .es-row > span:first-child { 
-            width: calc(100% - 80px) !important; 
-            float: left;
+        /* 2. NAME Column (First Item)
+           flex: 1 -> Forces this element to grow and consume ALL empty space.
+           This pushes the State column to the far right. */
+        .es-header-row > span:first-child,
+        .es-row > span:first-child { 
+            flex: 1 1 auto !important;
+            width: auto !important;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         
-        /* 3. STATE Column (Header & Data)
-           - Fixed 80px width (just enough for 'Playing')
-           - Pushed strictly to the right */
-        .w18:last-of-type, .es-row > span:last-child { 
-            width: 80px !important; 
+        /* 3. STATE Column (Last Item)
+           flex: 0 0 70px -> Do not grow, do not shrink, stay exactly 70px wide. */
+        .es-header-row > span:last-child,
+        .es-row > span:last-child { 
+            flex: 0 0 70px !important;
+            width: 70px !important; 
             text-align: right !important;
-            float: right;
         }
     }
 </style>
@@ -81,10 +95,12 @@ $mytiles[$plugin]['column1'] = <<<EOT
   </tr>
   <tr>
     <td>            
-        <span class="w36">_(Name)_</span>
-        <span class="w18 es-hide-mobile" align="center">_(Device)_</span>
-        <span class="w18 es-hide-mobile">_(User)_</span>
-        <span class="w18" align="right">_(State)_</span>
+        <div class="es-header-row">
+            <span class="w36">_(Name)_</span>
+            <span class="w18 es-hide-mobile" align="center">_(Device)_</span>
+            <span class="w18 es-hide-mobile">_(User)_</span>
+            <span class="w18" align="right">_(State)_</span>
+        </div>
     </td>
   </tr>
   <tr>
