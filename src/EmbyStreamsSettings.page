@@ -8,13 +8,11 @@ $cfg = parse_ini_file($cfg_file);
 $saved = false;
 
 if ($_POST) {
-    // Sanitize and Save
-    $cfg['HOST'] = preg_replace("/[^0-9.]/", "", $_POST['HOST']); // Simple IP sanitation
+    $cfg['HOST'] = preg_replace("/[^0-9.]/", "", $_POST['HOST']);
     $cfg['PORT'] = (int)$_POST['PORT'];
     $cfg['API_KEY'] = trim($_POST['API_KEY']);
     $cfg['POLL_INTERVAL'] = (int)$_POST['POLL_INTERVAL'];
     
-    // Write to config file
     $content = "";
     foreach ($cfg as $key => $value) {
         $content .= "$key='$value'\n";
@@ -25,45 +23,31 @@ if ($_POST) {
 ?>
 
 <?php if ($saved): ?>
-<div style="background: #e7f4e4; color: #2d562d; padding: 10px; margin-bottom: 20px; border: 1px solid #c3e6cb; border-radius: 4px;">
-    Settings Saved Successfully.
-</div>
+<script>
+    // SweetAlert for better UX than a reload
+    swal({
+        title: "Saved",
+        text: "Configuration updated successfully.",
+        type: "success",
+        timer: 2000
+    });
+</script>
 <?php endif; ?>
 
-<div style="max-width: 600px;">
-    <p>Configure the connection to your Emby Server.</p>
+<form markdown="1" method="POST" action="/update.php" target="progressFrame">
+    <input type="hidden" name="#file" value="embystreams/embystreams.cfg">
     
-    <form method="POST">
-        <dl>
-            <dt>Emby Host IP:</dt>
-            <dd>
-                <input type="text" name="HOST" value="<?=$cfg['HOST'];?>" placeholder="192.168.1.50" required>
-                <div class="desc">The local IP address of your Emby server (without http://).</div>
-            </dd>
-            
-            <dt>Emby Port:</dt>
-            <dd>
-                <input type="number" name="PORT" value="<?=$cfg['PORT'];?>" placeholder="8096" required>
-                <div class="desc">Default is 8096.</div>
-            </dd>
-            
-            <dt>API Key:</dt>
-            <dd>
-                <input type="password" name="API_KEY" value="<?=$cfg['API_KEY'];?>" required style="width: 300px;">
-                <div class="desc">Generate this in Emby Dashboard > Advanced > API Keys.</div>
-            </dd>
-            
-            <dt>Refresh Interval:</dt>
-            <dd>
-                <input type="number" name="POLL_INTERVAL" value="<?=$cfg['POLL_INTERVAL'];?>" min="1" max="60">
-                <span style="margin-left:5px;">seconds</span>
-                <div class="desc">How often the dashboard widget checks for new streams.</div>
-            </dd>
-        </dl>
-        
-        <div style="margin-top: 20px;">
-            <input type="submit" value="Apply" class="literal-button">
-            <a href="/Dashboard" class="button">Cancel</a>
-        </div>
-    </form>
-</div>
+    Emby Host IP:
+    : <input type="text" name="HOST" value="<?=$cfg['HOST'];?>" placeholder="192.168.1.50" required>
+    
+    Emby Port:
+    : <input type="number" name="PORT" value="<?=$cfg['PORT'];?>" placeholder="8096" required>
+    
+    API Key:
+    : <input type="password" name="API_KEY" value="<?=$cfg['API_KEY'];?>" required style="width: 300px;">
+    
+    Refresh Interval (seconds):
+    : <input type="number" name="POLL_INTERVAL" value="<?=$cfg['POLL_INTERVAL'];?>" min="1" max="60">
+    
+    <input type="submit" value="Apply">
+</form>
