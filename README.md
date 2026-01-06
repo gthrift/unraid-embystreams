@@ -12,9 +12,13 @@ Emby Streams is a lightweight Unraid plugin that adds a real-time dashboard widg
 
 ## Preview
 
-| Dashboard Widget | Settings Page |
-| :--- | :--- |
-| ![Dashboard Example](https://raw.githubusercontent.com/gthrift/unraid-embystreams/master/metadata/dashboard_preview.png) | ![Settings Example](https://raw.githubusercontent.com/gthrift/unraid-embystreams/master/metadata/settings_preview.png) |
+| Dashboard Widget | 
+| :--- |
+| ![Dashboard Example](https://raw.githubusercontent.com/gthrift/unraid-embystreams/master/metadata/dashboard_preview.png) | 
+
+| Settings Page |
+| :--- |
+| ![Settings Example](https://raw.githubusercontent.com/gthrift/unraid-embystreams/master/metadata/settings_preview.png) |
 
 ## Installation
 
