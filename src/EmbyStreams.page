@@ -3,56 +3,52 @@ Icon="emby.png"
 Tag="film"
 Cond="parse_ini_file('/boot/config/plugins/embystreams/embystreams.cfg')['DISPLAY_WIDGET'] == '1'"
 ---
-<style>
-    p.embystream-title {
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        width: 200px;
-        padding: 0;
-        margin: 0 0 10px 0;
-    }
-
-    p.embystream-user {
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        width: 104px;
-        padding: 0;
-        margin: 0 0 10px 0;
-    }
-
-    p.embystream-time {
-        padding: 0;
-        margin: 0 0 10px 0;
-        font-size: 10px;
-        width: 125px;
-        text-align: right;
-    }
-    
-    /* Ensure rows line up with headers */
-    .es-row { display: flex; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); padding: 4px 0; }
-    .es-row:last-child { border-bottom: none; }
-</style>
-
-<?PHP
+<?php
     $plugin = "embystreams";
     $cfg = parse_ini_file("/boot/config/plugins/embystreams/embystreams.cfg");
+    // Default to 5 seconds if not set
     $poll_interval = isset($cfg['POLL_INTERVAL']) ? (int)$cfg['POLL_INTERVAL'] * 1000 : 5000;
 ?>
 
+<style>
+    /* Custom CSS to match PlexStreams styling */
+    .emby-icon-img {
+        width: 48px; 
+        height: 48px; 
+        vertical-align: top; 
+        margin-right: 10px;
+    }
+    .es-row { 
+        display: flex; 
+        align-items: center; 
+        border-bottom: 1px solid rgba(255,255,255,0.05); 
+        padding: 4px 0; 
+    }
+    .es-row:last-child { border-bottom: none; }
+</style>
+
 <?php
-// Define the tile structure using HEREDOC syntax, exactly like plexstreams
+// We use the $mytiles variable. This is the "Magic" that makes Unraid treat it like a native widget.
 $mytiles[$plugin]['column1'] =
 <<<EOT
 <tbody class="sortable" title="_(Emby Streams)_">
     <tr>
         <td>
-            <i style="font-size:32px;vertical-align:top;" class="icon-emby icon"></i>
-            <div class="section" style="line-height:2rem;">_(Emby Streams)_<br><span id="es_count_container"><span id="embystreams_count">0</span> _(Active Stream(s))_</span></div>
-            <a href="/Settings/EmbyStreamsSettings" title="_(Emby Streams Settings)_"><i class="fa fa-fw fa-cog control"></i></a>
+            <img src="/plugins/embystreams/emby.png" class="emby-icon-img icon">
+            
+            <div class="section" style="line-height:2rem;">
+                _(Emby Streams)_<br>
+                <span id="es_count_container">
+                    <span id="embystreams_count">0</span> _(Active Stream(s))_
+                </span>
+            </div>
+            
+            <a href="/Settings/EmbyStreamsSettings" title="_(Emby Streams Settings)_">
+                <i class="fa fa-fw fa-cog control"></i>
+            </a>
         </td>
     </tr>
+    
     <tr>
         <td>            
             <span class="w36">_(Name)_</span>
@@ -61,11 +57,14 @@ $mytiles[$plugin]['column1'] =
             <span class="w18" align="right">_(State)_</span>
         </td>
     </tr>
+    
     <tr>
         <td>
             <div id="embystreams_streams">
                 <div id="es_retrieving">
-                    <p align="center" style="font-style:italic;text-align:center;">_(Retrieving Stream Data...)_</p>
+                    <p align="center" style="font-style:italic;text-align:center;padding-top:10px;">
+                        _(Retrieving Stream Data...)_
+                    </p>
                 </div>
             </div>
         </td>
@@ -75,18 +74,16 @@ EOT;
 ?>
 
 <script>
-    // Inline Javascript to handle the polling
     var embyPollInterval = <?=$poll_interval;?>;
 
     function updateEmbyDashboard() {
         $.get("/plugins/embystreams/embystreams_api.php", function(data) {
             if (data) {
-                // Update the content div
+                // Update Content
                 $("#embystreams_streams").html(data);
                 
-                // Update the count (Optional: requires your API to return a count attribute or we count rows)
-                // For now, we count how many rows are in the returned data
-                var count = $("#embystreams_streams tr").length;
+                // Update Count (naive count based on rows)
+                var count = $("#embystreams_streams .es-row").length;
                 if(data.includes("No active streams")) count = 0;
                 $("#embystreams_count").text(count);
             }
@@ -94,9 +91,7 @@ EOT;
     }
 
     $(function() {
-        // Run once on load
         updateEmbyDashboard();
-        // Set interval
         setInterval(updateEmbyDashboard, embyPollInterval);
     });
 </script>
