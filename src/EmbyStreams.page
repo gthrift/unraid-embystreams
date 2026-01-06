@@ -1,59 +1,102 @@
-Menu="Dashboard"
+Menu="Dashboard:0"
 Icon="emby.png"
+Tag="film"
+Cond="parse_ini_file('/boot/config/plugins/embystreams/embystreams.cfg')['DISPLAY_WIDGET'] == '1'"
 ---
 <style>
-    /* CSS Scoped to this tile */
-    #emby-streams-tile .tile-content { padding: 0; min-height: 80px; }
-    #emby-streams-tile table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-    #emby-streams-tile th { text-align: left; padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.1); opacity: 0.6; font-size: 1.1rem; }
-    #emby-streams-tile td { padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.05); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    #emby-streams-tile tr:last-child td { border-bottom: none; }
-    .es-icon-play { color: #8cc43c; margin-right:5px; }
-    .es-icon-pause { color: #ff9900; margin-right:5px; }
+    p.embystream-title {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        width: 200px;
+        padding: 0;
+        margin: 0 0 10px 0;
+    }
+
+    p.embystream-user {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        width: 104px;
+        padding: 0;
+        margin: 0 0 10px 0;
+    }
+
+    p.embystream-time {
+        padding: 0;
+        margin: 0 0 10px 0;
+        font-size: 10px;
+        width: 125px;
+        text-align: right;
+    }
+    
+    /* Ensure rows line up with headers */
+    .es-row { display: flex; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); padding: 4px 0; }
+    .es-row:last-child { border-bottom: none; }
 </style>
 
-<?php
-$cfg = parse_ini_file("/boot/config/plugins/embystreams/embystreams.cfg");
-$interval = isset($cfg['POLL_INTERVAL']) ? (int)$cfg['POLL_INTERVAL'] * 1000 : 5000;
+<?PHP
+    $plugin = "embystreams";
+    $cfg = parse_ini_file("/boot/config/plugins/embystreams/embystreams.cfg");
+    $poll_interval = isset($cfg['POLL_INTERVAL']) ? (int)$cfg['POLL_INTERVAL'] * 1000 : 5000;
 ?>
 
-<div class="tile" id="emby-streams-tile">
-    <div class="tile-header">
-        <span class="tile-header-left">
-            <i class="icon-emby f32"></i> <div class="section">
-                <h3 class="tile-header-main">Emby Streams</h3>
+<?php
+// Define the tile structure using HEREDOC syntax, exactly like plexstreams
+$mytiles[$plugin]['column1'] =
+<<<EOT
+<tbody class="sortable" title="_(Emby Streams)_">
+    <tr>
+        <td>
+            <i style="font-size:32px;vertical-align:top;" class="icon-emby icon"></i>
+            <div class="section" style="line-height:2rem;">_(Emby Streams)_<br><span id="es_count_container"><span id="embystreams_count">0</span> _(Active Stream(s))_</span></div>
+            <a href="/Settings/EmbyStreamsSettings" title="_(Emby Streams Settings)_"><i class="fa fa-fw fa-cog control"></i></a>
+        </td>
+    </tr>
+    <tr>
+        <td>            
+            <span class="w36">_(Name)_</span>
+            <span class="w18" align="center">_(Device)_</span>
+            <span class="w18">_(User)_</span>
+            <span class="w18" align="right">_(State)_</span>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <div id="embystreams_streams">
+                <div id="es_retrieving">
+                    <p align="center" style="font-style:italic;text-align:center;">_(Retrieving Stream Data...)_</p>
+                </div>
             </div>
-        </span>
-        <span class="tile-header-right">
-            <span class="tile-ctrl">
-                <a href="/Settings/EmbyStreamsSettings" title="Settings"><i class="fa fa-cog"></i></a>
-            </span>
-        </span>
-    </div>
-
-    <div class="tile-content" id="emby_streams_content">
-        <div style="text-align:center; padding: 25px; opacity: 0.5;">
-            <i class="fa fa-spinner fa-spin"></i> Loading...
-        </div>
-    </div>
-</div>
+        </td>
+    </tr>
+</tbody>
+EOT;
+?>
 
 <script>
-    var embyPollInterval = <?=$interval;?>;
-    var embyTimer;
+    // Inline Javascript to handle the polling
+    var embyPollInterval = <?=$poll_interval;?>;
 
-    function updateEmbyStreams() {
+    function updateEmbyDashboard() {
         $.get("/plugins/embystreams/embystreams_api.php", function(data) {
-            if(data.trim() !== "") {
-                $("#emby_streams_content").html(data);
+            if (data) {
+                // Update the content div
+                $("#embystreams_streams").html(data);
+                
+                // Update the count (Optional: requires your API to return a count attribute or we count rows)
+                // For now, we count how many rows are in the returned data
+                var count = $("#embystreams_streams tr").length;
+                if(data.includes("No active streams")) count = 0;
+                $("#embystreams_count").text(count);
             }
         });
     }
 
-    // Load immediately
-    updateEmbyStreams();
-
-    // Prevent duplicate timers if dashboard refreshes
-    if (typeof embyTimer !== 'undefined') clearInterval(embyTimer);
-    embyTimer = setInterval(updateEmbyStreams, embyPollInterval);
+    $(function() {
+        // Run once on load
+        updateEmbyDashboard();
+        // Set interval
+        setInterval(updateEmbyDashboard, embyPollInterval);
+    });
 </script>
