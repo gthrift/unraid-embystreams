@@ -7,32 +7,50 @@ $interval = isset($cfg['POLL_INTERVAL']) ? (int)$cfg['POLL_INTERVAL'] * 1000 : 5
 ?>
 
 <style>
-    #emby_streams_content table { width: 100%; text-align: left; }
-    #emby_streams_content th { font-weight: bold; border-bottom: 1px solid #444; padding: 5px; }
-    #emby_streams_content td { padding: 5px; border-bottom: 1px solid #2b2b2b; }
-    .emby-user-img { width: 30px; border-radius: 50%; vertical-align: middle; margin-right: 10px; }
+    /* Scoped styles for the widget content */
+    #emby_streams_content table { width: 100%; text-align: left; margin-top: 5px; }
+    #emby_streams_content th { font-weight: bold; opacity: 0.6; padding: 4px; font-size: 11px; text-transform: uppercase; }
+    #emby_streams_content td { padding: 8px 4px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 12px; }
+    #emby_streams_content tr:last-child td { border-bottom: none; }
+    .es-status-playing { color: #8cc43c; }
+    .es-status-paused { color: #eebb00; }
 </style>
 
-<div class="tile-content" id="emby_streams_content">
-    <div style="text-align:center; padding: 20px;">
-        <i class="fa fa-spinner fa-spin"></i> Loading Emby Streams...
+<div class="tile" id="embystreams-tile">
+    <div class="tile-header">
+        <i class="icon-emby" style="font-size: 24px; vertical-align: middle; margin-right: 8px;"></i>
+        <span style="font-weight: bold; font-size: 14px; vertical-align: middle;">Emby Streams</span>
+        
+        <a href="/Settings/EmbyStreamsSettings" title="Settings" style="float: right; margin-top: 4px; opacity: 0.5;">
+            <i class="fa fa-cog"></i>
+        </a>
+    </div>
+
+    <div class="tile-content" id="emby_streams_content" style="overflow-y: auto; max-height: 300px;">
+        <div style="text-align:center; padding: 20px; opacity: 0.5;">
+            <i class="fa fa-spinner fa-spin"></i> Loading...
+        </div>
     </div>
 </div>
 
 <script>
     var embyPollInterval = <?=$interval;?>;
-    
+    var embyTimer;
+
     function updateEmbyStreams() {
         $.get("/plugins/embystreams/embystreams_api.php", function(data) {
             $("#emby_streams_content").html(data);
         }).fail(function() {
-            $("#emby_streams_content").html("Error contacting Emby API. Check Settings.");
+            $("#emby_streams_content").html("<div style='padding:15px; color:#d44;'>Error contacting Emby API. Check Settings.</div>");
         });
     }
 
-    // Initial Load
+    // Load immediately
     updateEmbyStreams();
 
-    // Set Interval
-    setInterval(updateEmbyStreams, embyPollInterval);
+    // Clear previous timer if exists (prevents duplicates on dashboard refresh)
+    if (typeof embyTimer !== 'undefined') clearInterval(embyTimer);
+    
+    // Start polling
+    embyTimer = setInterval(updateEmbyStreams, embyPollInterval);
 </script>
