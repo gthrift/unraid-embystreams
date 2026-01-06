@@ -11,16 +11,14 @@ Cond="parse_ini_file('/boot/config/plugins/embystreams/embystreams.cfg')['DISPLA
     // Construct Emby WebUI URL
     $host = $cfg['HOST'] ?? '';
     $port = $cfg['PORT'] ?? '8096';
-    // Basic check to assume http/https (Emby defaults to http on 8096, https on 8920)
     $protocol = ($port == '8920') ? 'https' : 'http';
     $emby_url = "$protocol://$host:$port/web/index.html";
 ?>
 
 <style>
-    .emby-icon-img { width: 40px; height: 40px; vertical-align: top; margin-right: 10px; }
+    .emby-icon-img { width: 48px; height: 48px; vertical-align: top; margin-right: 10px; }
     .es-row { display: flex; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); padding: 4px 0; }
     .es-row:last-child { border-bottom: none; }
-    /* Transcode Icon Style */
     .es-transcode { font-size: 10px; opacity: 0.7; margin-left: 5px; }
 </style>
 
@@ -31,14 +29,20 @@ $mytiles[$plugin]['column1'] =
     <tr>
         <td>
             <img src="/plugins/embystreams/emby.png" class="emby-icon-img icon">
+            
             <div class="section" style="line-height:2rem;">
                 _(Emby Streams)_<br>
                 <span id="es_count_container"><span id="embystreams_count">0</span> _(Active Stream(s))_</span>
             </div>
             
-            <a href="/Settings/EmbyStreamsSettings" title="_(Settings)_"><i class="fa fa-fw fa-cog control"></i></a>
-            
-            <a href="{$emby_url}" target="_blank" title="_(Open Emby WebUI)_"><i class="fa fa-fw fa-external-link control"></i></a>
+            <span style="float:right; margin-top: 12px;">
+                <a href="{$emby_url}" target="_blank" title="_(Open Emby WebUI)_" style="margin-right: 8px;">
+                    <i class="fa fa-fw fa-external-link control"></i>
+                </a>
+                <a href="/Settings/EmbyStreamsSettings" title="_(Settings)_">
+                    <i class="fa fa-fw fa-cog control"></i>
+                </a>
+            </span>
         </td>
     </tr>
     <tr>
@@ -64,18 +68,32 @@ EOT;
 
 <script>
     var embyPollInterval = <?=$poll_interval;?>;
+    
     function updateEmbyDashboard() {
         $.get("/plugins/embystreams/embystreams_api.php", function(data) {
             if (data) {
+                // 1. Update the stream list content
                 $("#embystreams_streams").html(data);
+                
+                // 2. Calculate the count
+                // We count how many elements have the class '.es-row'
                 var count = $("#embystreams_streams .es-row").length;
-                if(data.includes("No active streams")) count = 0;
+                
+                // Double check: if the HTML contains the "No active streams" text, force count to 0
+                if(data.indexOf("No active streams") !== -1) {
+                    count = 0;
+                }
+                
+                // 3. Update the text number
                 $("#embystreams_count").text(count);
             }
         });
     }
+
     $(function() {
+        // Run immediately
         updateEmbyDashboard();
+        // Start Polling
         setInterval(updateEmbyDashboard, embyPollInterval);
     });
 </script>
