@@ -26,21 +26,19 @@ Cond="parse_ini_file('/boot/config/plugins/embystreams/embystreams.cfg')['DISPLA
 
     /* Mobile Responsiveness */
     @media only screen and (max-width: 500px) {
-        /* Hide Device (col 2) and User (col 3) on mobile */
-        .es-mobile-hide, 
-        .es-row > span:nth-of-type(2), 
-        .es-row > span:nth-of-type(3) { 
+        /* Hide elements with 'es-hide-mobile' class */
+        .es-hide-mobile { 
             display: none !important; 
         }
         
         /* Make Name column wider on mobile */
-        .w36, .es-row > span:nth-of-type(1) { 
+        .w36, .es-row > span:first-child { 
             width: 65% !important; 
         }
         
         /* Make State column wider on mobile */
-        .w18:last-child, .es-row > span:nth-of-type(4) { 
-            width: 30% !important; 
+        .w18:last-child, .es-row > span:last-child { 
+            width: 35% !important; 
             text-align: right;
         }
     }
@@ -77,8 +75,8 @@ $mytiles[$plugin]['column1'] = <<<EOT
   <tr>
     <td>            
         <span class="w36">_(Name)_</span>
-        <span class="w18 es-mobile-hide" align="center">_(Device)_</span>
-        <span class="w18 es-mobile-hide">_(User)_</span>
+        <span class="w18 es-hide-mobile" align="center">_(Device)_</span>
+        <span class="w18 es-hide-mobile">_(User)_</span>
         <span class="w18" align="right">_(State)_</span>
     </td>
   </tr>
@@ -135,7 +133,9 @@ if ( ! $isResponsiveWebgui) {
     }
 
     $(function() {
+        // Run immediately
         updateEmbyDashboard();
+        // Start Polling
         setInterval(updateEmbyDashboard, embyPollInterval);
     });
 </script>
