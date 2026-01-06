@@ -19,12 +19,13 @@ Cond="parse_ini_file('/boot/config/plugins/embystreams/embystreams.cfg')['DISPLA
     /* Icon styling adjusted for tile-header */
     .emby-icon-img { width: 32px; height: 32px; } 
 
-    /* Standard Row Styling (Desktop) */
-    /* We apply this to both the Header and the Data rows so they align perfectly */
+    /* Standard Row Styling */
+    /* Applied to both header and data rows */
     .es-row, .es-header-row { 
         display: flex; 
         align-items: center; 
         width: 100%;
+        box-sizing: border-box;
     }
     
     .es-row { 
@@ -42,25 +43,36 @@ Cond="parse_ini_file('/boot/config/plugins/embystreams/embystreams.cfg')['DISPLA
             display: none !important; 
         }
         
-        /* 2. NAME Column (First Item)
-           flex: 1 -> Forces this element to grow and consume ALL empty space.
-           This pushes the State column to the far right. */
+        /* 2. NAME Column (First Item) */
         .es-header-row > span:first-child,
         .es-row > span:first-child { 
-            flex: 1 1 auto !important;
-            width: auto !important;
+            /* CRITICAL: Unset standard Unraid widths */
+            width: auto !important; 
+            
+            /* Grow to fill all available space */
+            flex: 1 1 auto !important; 
+            
+            /* Must set min-width: 0 for ellipsis to work in Flexbox */
+            min-width: 0 !important; 
+            
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
         
-        /* 3. STATE Column (Last Item)
-           flex: 0 0 70px -> Do not grow, do not shrink, stay exactly 70px wide. */
+        /* 3. STATE Column (Last Item) */
         .es-header-row > span:last-child,
         .es-row > span:last-child { 
-            flex: 0 0 70px !important;
-            width: 70px !important; 
+            /* CRITICAL: Unset standard Unraid widths */
+            width: auto !important; 
+            
+            /* Do not grow, just fit the text */
+            flex: 0 0 auto !important; 
+            
+            /* Auto margin pushes this element to the FAR RIGHT edge */
+            margin-left: auto !important; 
             text-align: right !important;
+            padding-left: 10px;
         }
     }
 </style>
