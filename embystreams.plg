@@ -12,10 +12,8 @@
 
 <CHANGES>
 ###2024.01.27
-- Refactored to match Unraid standards.
-- Fixed Dashboard widget layout (now collapsible/movable).
-- Moved Settings to "User Utilities".
-- Added configurable polling interval.
+- Refactor: Full rebuild to match Unraid 6.12+ standards.
+- Fix: Robust removal script added.
 </CHANGES>
 
 <FILE Name="/usr/local/emhttp/plugins/&name;/EmbyStreamsSettings.page">
@@ -55,15 +53,15 @@ echo ""
 </INSTALL>
 
 <REMOVE>
-rm -f /usr/local/emhttp/plugins/&name;/EmbyStreams.page
-
-rm -f /usr/local/emhttp/plugins/&name;/EmbyStreamsSettings.page
-
-rm -f /usr/local/emhttp/plugins/&name;/embystreams_api.php
-rm -f /usr/local/emhttp/plugins/&name;/emby.png
+echo "Removing &name;..."
 
 rm -rf /usr/local/emhttp/plugins/&name;
 
+rm -f /usr/local/emhttp/plugins/EmbyStreams.page
+rm -f /usr/local/emhttp/plugins/EmbyStreamsSettings.page
+rm -f /usr/local/emhttp/plugins/embystreams_api.php
+
+removepkg &name;
 rm -f /boot/config/plugins/&name;.plg
 
 echo "----------------------------------------------------"
