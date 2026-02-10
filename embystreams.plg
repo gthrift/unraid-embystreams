@@ -1,0 +1,102 @@
+<?xml version='1.0' standalone='yes'?>
+<!DOCTYPE PLUGIN [
+<!ENTITY name      "embystreams">
+<!ENTITY author    "gthrift">
+<!ENTITY version   "2026.01.06">
+<!ENTITY launch    "Settings/EmbyStreamsSettings">
+<!ENTITY gitURL    "https://raw.githubusercontent.com/gthrift/unraid-embystreams/master">
+<!ENTITY pluginURL "&gitURL;/embystreams.plg">
+<!ENTITY emhttp    "/usr/local/emhttp/plugins/&name;">
+<!ENTITY plgPATH   "/boot/config/plugins/&name;">
+]>
+
+<PLUGIN name="&name;" 
+        author="&author;" 
+        version="&version;" 
+        launch="&launch;" 
+        pluginURL="&pluginURL;" 
+        support="https://github.com/gthrift/unraid-embystreams/issues"
+        project="https://github.com/gthrift/unraid-embystreams/"
+        readme="https://github.com/gthrift/unraid-embystreams/#readme"
+        icon="emby.png">
+
+<CHANGES>
+###2026.01.06
+- Initial release.
+</CHANGES>
+
+<OVERVIEW>
+A plugin to create a dashboard widget that shows your active Emby streams
+</OVERVIEW>
+
+<FILE Run="/bin/bash">
+        <INLINE>
+                # Remove old webUI files to prevent conflicts
+                # This runs before the new package is installed
+                rm -f "&emhttp;/*.page"
+                rm -f "&emhttp;/*.php"
+
+                # Create Config Directory before download attempts to write to it
+                mkdir -p "&plgPATH;"
+        </INLINE>
+</FILE>
+
+<FILE Name="&plgPATH;/&name;-&version;.txz" Run="upgradepkg --install-new --reinstall">
+    <URL>&archive;</URL>
+    <SHA256>&sha256;</SHA256>
+</FILE>
+
+<FILE Run="/bin/bash">
+        <INLINE>
+                # Set Default Config if missing
+                if [ ! -f "&plgPATH;/embystreams.cfg" ]; then
+                    echo "POLL_INTERVAL='5'" > "&plgPATH;/embystreams.cfg"
+                    echo "WIDGET_ICON='streams'" >> "&plgPATH;/embystreams.cfg"
+                    echo "WIDGET_TITLE='Active Streams'" >> "&plgPATH;/embystreams.cfg"
+                fi
+                
+                # Create empty servers config if missing
+                if [ ! -f "&plgPATH;/servers.json" ]; then
+                    echo "[]" > "&plgPATH;/servers.json"
+                fi
+                
+                echo ""
+                echo "-----------------------------------------------------------"
+                echo " &name; has been installed."
+                echo " Version: &version;"
+                echo "-----------------------------------------------------------"
+                echo ""
+        </INLINE>
+</FILE>
+
+<FILE Run="/bin/bash" Method="remove">
+        <INLINE>
+                echo "Uninstalling &name;..."
+
+                # uninstall plugin
+                removepkg &plgPATH;/*.txz
+                
+                rm -rf &emhttp;
+                rm -rf &plgPATH;/*.txz \
+                       &plgPATH;/*.sha256
+                
+                # Configuration files are preserved for future reinstallation
+                # To manually remove configs, delete: &plgPATH;/embystreams.cfg and &plgPATH;/servers.json
+                
+                echo ""
+                echo "-----------------------------------------------------------"
+                echo " &name; has been uninstalled."
+                echo " Your server configurations have been preserved at:"
+                echo " &plgPATH;/"
+                echo ""
+                echo " To completely remove all settings, manually delete:"
+                echo " &plgPATH;/embystreams.cfg"
+                echo " &plgPATH;/servers.json"
+                echo "-----------------------------------------------------------"
+                echo ""
+        </INLINE>
+</FILE>
+
+</PLUGIN>
+
+</PLUGIN>
