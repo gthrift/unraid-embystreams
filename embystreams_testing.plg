@@ -10,7 +10,15 @@
 <!ENTITY plgPATH   "/boot/config/plugins/&name;">
 ]>
 
-<PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&pluginURL;" icon="emby.png">
+<PLUGIN name="&name;" 
+        author="&author;" 
+        version="&version;" 
+        launch="&launch;" 
+        pluginURL="&pluginURL;" 
+        support="https://github.com/gthrift/unraid-embystreams/issues"
+        project="https://github.com/gthrift/unraid-embystreams/"
+        readme="https://github.com/gthrift/unraid-embystreams/#readme"
+        icon="emby.png">
 
 <CHANGES>
 ###2026.01.06
