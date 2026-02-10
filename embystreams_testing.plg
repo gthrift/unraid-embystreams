@@ -61,10 +61,6 @@ if [ ! -f "&plgPATH;/embystreams.cfg" ]; then
     echo "DISPLAY_NAV='1'" &gt;&gt; "&plgPATH;/embystreams.cfg"
 fi
 
-# 3. Fix Permissions
-chmod -R 777 "&emhttp;"
-chmod -R 777 "&plgPATH;"
-
 # 4. TOGGLE LOGIC
 CFG_FILE="&plgPATH;/embystreams.cfg"
 WIDGET_FILE="&emhttp;/EmbyStreams.page"
