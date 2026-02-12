@@ -35,23 +35,30 @@ Cond="parse_ini_file('/boot/config/plugins/embystreams/embystreams.cfg')['DISPLA
     /* --- DESKTOP LAYOUT (Default) --- */
     /* Using !important to force alignment over any Unraid defaults */
     
-    .es-name { 
-        width: 40% !important; 
+    .es-name {
+        width: 45% !important;
+        overflow: hidden !important;
+        display: -webkit-box !important;
+        -webkit-line-clamp: 2 !important;
+        -webkit-box-orient: vertical !important;
+        line-height: 1.4 !important;
+        white-space: normal !important;
+        word-break: break-word !important;
     }
 
-    .es-device { 
-        width: 25% !important; 
-        text-align: center !important; 
+    .es-device {
+        width: 25% !important;
+        text-align: center !important;
     }
 
-    .es-user { 
-        width: 15% !important; 
-        text-align: center !important; 
+    .es-user {
+        width: 15% !important;
+        text-align: center !important;
     }
 
-    .es-state { 
-        width: 20% !important; 
-        text-align: right !important; 
+    .es-state {
+        width: 15% !important;
+        text-align: right !important;
     }
 
 
@@ -63,13 +70,17 @@ Cond="parse_ini_file('/boot/config/plugins/embystreams/embystreams.cfg')['DISPLA
         }
         
         /* NAME: Fill available space */
-        .es-name { 
-            width: auto !important;     
-            flex: 1 1 auto !important;  
-            min-width: 0;               
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+        .es-name {
+            width: auto !important;
+            flex: 1 1 auto !important;
+            min-width: 0;
+            overflow: hidden !important;
+            display: -webkit-box !important;
+            -webkit-line-clamp: 2 !important;
+            -webkit-box-orient: vertical !important;
+            line-height: 1.4 !important;
+            white-space: normal !important;
+            word-break: break-word !important;
         }
         
         /* STATE: Compact on right */
