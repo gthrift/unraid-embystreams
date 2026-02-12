@@ -298,13 +298,13 @@ foreach ($active_streams as $s) {
     
     // User
     echo "<span class='es-user' style='white-space:nowrap; overflow:hidden; text-overflow:ellipsis;' title='" . $user . "'>
-            <i class='fa fa-user' style='opacity:0.3; margin-right:4px;'></i>" . $user . "
+            </i>" . $user . "
           </span>";
     
     // State
     echo "<span class='es-state' align='right' style='color:" . $status_color . "; font-weight:bold; cursor:help;' title='" . $tooltip . "'>";
     if ($is_transcoding) {
-        echo "<i class='fa fa-exchange es-transcode' title='_(Transcoding)_'></i> ";
+        echo "<i class='fa fa-random es-transcode' title='Transcoding'></i> ";
     }
     echo "<i class='fa " . $status_icon . "' style='font-size:10px; margin-right:4px;'></i>" . $status_text;
     echo "</span>";
