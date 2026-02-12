@@ -1,6 +1,6 @@
-Menu="EmbyStreams"
+Menu="Utilities"
 Title="Emby Stream Settings"
-Tag="film"
+Icon="emby.png"
 ---
 <?php
     // Initialize session for CSRF protection
