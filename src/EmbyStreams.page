@@ -1,7 +1,6 @@
 Menu="Dashboard:0"
 Icon="emby.png"
 Tag="film"
-Cond="parse_ini_file('/boot/config/plugins/embystreams/embystreams.cfg')['DISPLAY_WIDGET'] == '1'"
 ---
 <?php
     // Initialize session for CSRF protection
