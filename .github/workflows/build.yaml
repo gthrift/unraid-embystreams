@@ -233,28 +233,4 @@ jobs:
           git push origin HEAD:main
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      
-      - name: Create Release
-        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v1
-        with:
-          files: |
-            archive/${{ env.ARCHIVE_NAME }}
-            archive/embystreams-${{ steps.version.outputs.VERSION }}.sha256
-          body: |
-            ## Emby Streams v${{ steps.version.outputs.VERSION }}
-
-            **SHA256:** `${{ env.SHA256_HASH }}`
-            
-            ### Installation
-            ```
-            https://raw.githubusercontent.com/gthrift/unraid-embystreams/main/embystreams.plg
-            ```
-            
-            ### Files in Package
-            - EmbyStreams.page
-            - EmbyStreamsSettings.page
-            - embystreams_api.php
-            - emby.png
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+   
