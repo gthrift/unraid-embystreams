@@ -1,4 +1,4 @@
-Menu="Dashboard:0"
+Menu="Dashboard"
 Icon="emby.png"
 Tag="film"
 ---
@@ -16,7 +16,7 @@ Tag="film"
     $plugin = "embystreams";
     $cfg = parse_ini_file("/boot/config/plugins/embystreams/embystreams.cfg");
     
-    // Validate and sanitize poll interval
+    // Validate and sanitize poll interval (default 5000ms)
     $poll_interval = isset($cfg['POLL_INTERVAL']) ? max(1, min(60, (int)$cfg['POLL_INTERVAL'])) * 1000 : 5000;
     
     $host = $cfg['HOST'] ?? '';
@@ -25,7 +25,7 @@ Tag="film"
     // Validate port
     $port = max(1, min(65535, (int)$port));
     
-    // More secure protocol detection - allow explicit HTTPS setting
+    // Protocol detection
     $use_https = ($cfg['USE_HTTPS'] ?? '0') === '1';
     $protocol = $use_https ? 'https' : 'http';
     
@@ -33,19 +33,75 @@ Tag="film"
     $csrf_token = $_SESSION['embystreams_csrf'];
 ?>
 
+<style>
+    /* Namespace all styles to prevent conflicts */
+    #embystreams_tile {
+        /* Inherit Unraid font settings */
+        font-size: 1.2rem;
+    }
+
+    /* Column Headers */
+    .es-header-row {
+        display: flex;
+        padding: 4px 0;
+        border-bottom: 1px solid var(--border-default); /* Native theme border */
+        color: var(--text-muted); /* Native muted text color */
+        font-weight: 500;
+        font-size: 1.1rem;
+        margin-bottom: 8px;
+    }
+
+    .es-header-row span {
+        flex: 1;
+        padding: 0 4px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    /* Specific widths for columns to match data content */
+    .es-name { flex: 2 !important; }
+    .es-device { flex: 1; }
+    .es-user { flex: 1; }
+    .es-state { flex: 0.8; text-align: right; }
+
+    /* Stream Content Container */
+    #embystreams_streams {
+        min-height: 40px;
+    }
+
+    /* Sub-text styling */
+    #es_count_container {
+        font-size: 1.1rem;
+        color: var(--text-muted);
+    }
+    
+    /* Error State using native red */
+    .es-error {
+        padding: 15px; 
+        text-align: center; 
+        color: var(--text-red); /* Native error color */
+        font-weight: bold;
+    }
+
+    /* Native Unraid Icon overrides */
+    .emby-icon-img {
+        width: 48px;
+        height: 48px;
+    }
+</style>
 
 <?php
+// We wrap the content in a div with a unique ID for styling scope
 $mytiles[$plugin]['column1'] = <<<EOT
-<tbody class="sortable" title="Emby Streams">
+<tbody class="sortable" title="Emby Streams" id="embystreams_tile">
   <tr>
     <td>
       <div class='tile-header' id='{$plugin}-dashboard-card'>
         <div class='tile-header-left'>
           <img src="/plugins/embystreams/emby.png" class="emby-icon-img icon">
-          <div class='section'>
-            <h3 class='tile-header-main' id='{$plugin}-dashboard-title'>
-              Emby Streams
-            </h3>
+          <div class='tile-text'>
+            <span class='tile-header-main' id='{$plugin}-dashboard-title'>Emby Streams</span>
             <span id="es_count_container"><span id="embystreams_count">0</span> Active Stream(s)</span>
           </div>
         </div>
@@ -76,7 +132,7 @@ $mytiles[$plugin]['column1'] = <<<EOT
     <td>
         <div id="embystreams_streams">
             <div id="es_retrieving">
-                <p align="center" style="font-style:italic;text-align:center;padding-top:10px;">_(Retrieving Data...)_</p>
+                <p align="center" style="font-style:italic; text-align:center; padding-top:10px; color:var(--text-muted);">_(Retrieving Data...)_</p>
             </div>
         </div>
     </td>
@@ -85,14 +141,15 @@ $mytiles[$plugin]['column1'] = <<<EOT
 EOT;
 
 // COMPATIBILITY BLOCK FOR UNRAID 7.2+
+// The logic below ensures that if we are NOT on 7.2+, we patch the DOM to look correct.
+// On 7.2+, the HTML structure above (using .tile-header) is already native.
 $isResponsiveWebgui = version_compare(parse_ini_file('/etc/unraid-version')['version'] ?? "", '7.2', '>=');
 if ( ! $isResponsiveWebgui) {
     $mytiles[$plugin]["column1"] .= <<<EOT
         <script>
             $(function() {
-                $('#{$plugin}-dashboard-title').replaceWith(function() {
-                    return $(this).text() + "<br>";
-                });
+                // Legacy support adjustments
+                $('#{$plugin}-dashboard-title').css('display', 'block'); 
                 $('#{$plugin}-settings-button').prependTo('#{$plugin}-dashboard-card');
             });
         </script>
@@ -104,10 +161,9 @@ if ( ! $isResponsiveWebgui) {
     var embyPollInterval = <?=$poll_interval;?>;
     var embyCsrfToken = "<?=htmlspecialchars($csrf_token, ENT_QUOTES, 'UTF-8');?>";
     var embyLastUpdate = 0;
-    var embyMinInterval = 1000; // Minimum 1 second between requests
+    var embyMinInterval = 1000; 
     
     function updateEmbyDashboard() {
-        // Client-side rate limiting
         var now = Date.now();
         if (now - embyLastUpdate < embyMinInterval) {
             return;
@@ -135,7 +191,7 @@ if ( ! $isResponsiveWebgui) {
             error: function(xhr, status, error) {
                 console.error("Emby Streams Error:", status, error);
                 $("#embystreams_streams").html(
-                    "<div style='padding:15px; text-align:center; color:#d44;'>_(Connection Error)_</div>"
+                    "<div class='es-error'>_(Connection Error)_</div>"
                 );
             }
         });
