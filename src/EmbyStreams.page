@@ -34,21 +34,30 @@ Tag="film"
 ?>
 
 <style>
+    /* 1. Fix the logo clipping */
     .emby-icon-img { 
         width: 32px;
         height: 32px;
-        margin-top: 2px !important;
+        margin-top: 2px !important; /* Pushes icon down into view */
         object-fit: contain;
     }
 
-    /* Prevent widget from growing beyond container */
+    /* 2. HEADER CONSTRAINT: Restore overflow hidden, Fix max-width */
     #embystreams-dashboard-card { 
+        width: 100%;
+        max-width: 100%; /* <--- FIXED: Was 0, which breaks layout */
+        overflow: hidden; /* <--- Prevents stretching */
+    }
+    
+    /* 3. ROW CONSTRAINT: Ensure the content rows also don't stretch */
+    /* This targets the container holding the stream list */
+    #embystreams_streams {
         width: 100%;
         max-width: 100%;
         overflow: hidden;
     }
-    
-    /* Constrain table container */
+
+    /* Constrain table container (Unraid boilerplate) */
     #embystreams-dashboard-card table,
     #embystreams-dashboard-card tbody,
     #embystreams-dashboard-card tr,
@@ -65,13 +74,12 @@ Tag="film"
         width: 100%;
         max-width: 100%;
         box-sizing: border-box;
+        overflow: hidden; /* <--- Double check: constrain flex rows */
     }
     
     .es-row { 
         border-bottom: 1px solid rgba(255,255,255,0.05); 
         padding: 4px 0;
-        overflow: hidden !important;
-        max-width: 100% !important;
     }
     .es-row:last-child { border-bottom: none; }
     .es-transcode { font-size: 10px; opacity: 0.7; margin-left: 5px; }
@@ -84,7 +92,6 @@ Tag="film"
     }
 
     /* --- DESKTOP LAYOUT (Default) --- */
-    /* Using !important to force alignment over any Unraid defaults */
     
     .es-name { 
         width: 40% !important;
@@ -118,7 +125,6 @@ Tag="film"
         text-align: right !important;
         overflow: hidden !important;
     }
-
 
     /* --- MOBILE OVERRIDES (Max Width 600px) --- */
     @media only screen and (max-width: 600px) {
