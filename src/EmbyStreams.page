@@ -1,93 +1,101 @@
-Menu="Dashboard"
+Menu="Dashboard:0"
 Icon="emby.png"
 Tag="film"
+Cond="parse_ini_file('/boot/config/plugins/embystreams/embystreams.cfg')['DISPLAY_WIDGET'] == '1'"
 ---
 <?php
-    // 1. SAFE SESSION START
-    if (session_status() === PHP_SESSION_NONE) {
-        session_start();
-    }
-    
-    // 2. CONFIGURATION
     $plugin = "embystreams";
-    $config_file = "/boot/config/plugins/embystreams/embystreams.cfg";
+    $cfg = parse_ini_file("/boot/config/plugins/embystreams/embystreams.cfg");
+    $poll_interval = isset($cfg['POLL_INTERVAL']) ? (int)$cfg['POLL_INTERVAL'] * 1000 : 5000;
     
-    // Default values if config is missing
-    $poll_interval = 5000;
-    $emby_url = "http://localhost:8096";
-    
-    if (file_exists($config_file)) {
-        $cfg = parse_ini_file($config_file);
-        $poll_interval = isset($cfg['POLL_INTERVAL']) ? max(1, min(60, (int)$cfg['POLL_INTERVAL'])) * 1000 : 5000;
-        $host = $cfg['HOST'] ?? 'localhost';
-        $port = $cfg['PORT'] ?? '8096';
-        $use_https = ($cfg['USE_HTTPS'] ?? '0') === '1';
-        $protocol = $use_https ? 'https' : 'http';
-        $emby_url = htmlspecialchars("$protocol://$host:$port/web/index.html", ENT_QUOTES, 'UTF-8');
-    }
-
-    // CSRF Token
-    if (empty($_SESSION['embystreams_csrf'])) {
-        $_SESSION['embystreams_csrf'] = bin2hex(random_bytes(32));
-    }
-    $csrf_token = $_SESSION['embystreams_csrf'];
+    $host = $cfg['HOST'] ?? '';
+    $port = $cfg['PORT'] ?? '8096';
+    $protocol = ($port == '8920') ? 'https' : 'http';
+    $emby_url = "$protocol://$host:$port/web/index.html";
 ?>
 
-<?php
-// 3. CSS STYLES (Namespaced)
-$custom_css = <<<EOT
 <style>
-    /* Scope styles to this specific widget ID to avoid breaking other plugins */
-    #embystreams_tile {
-        font-size: 1.2rem;
-    }
-    /* Flex header for alignment */
-    .es-header-row {
-        display: flex;
-        padding: 4px 0;
-        border-bottom: 1px solid var(--border-default);
-        color: var(--text-muted);
-        font-weight: 500;
-        font-size: 1.1rem;
-        margin-bottom: 8px;
-    }
-    .es-header-row span {
-        flex: 1;
-        padding: 0 4px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-    /* Column sizing */
-    .es-name { flex: 2 !important; }
-    .es-device { flex: 1; }
-    .es-user { flex: 1; }
-    .es-state { flex: 0.8; text-align: right; }
-    
-    /* Native color support */
-    .es-error { color: var(--text-red); text-align: center; padding: 10px; }
-    .es-loading { color: var(--text-muted); font-style: italic; text-align: center; padding-top: 10px; }
-    
-    /* Icon sizing */
-    .emby-icon-img { width: 48px; height: 48px; }
-</style>
-EOT;
+    .emby-icon-img { width: 32px; height: 32px; } 
 
-// 4. MAIN WIDGET HTML
-// Note: We use the native structure required by Unraid 6/7
-$widget_html = <<<EOT
-<tbody class="sortable" title="Emby Streams" id="embystreams_tile">
+    /* Base Row Styling */
+    .es-row, .es-header-row { 
+        display: flex; 
+        align-items: center; 
+        width: 100%;
+        box-sizing: border-box;
+    }
+    
+    .es-row { 
+        border-bottom: 1px solid rgba(255,255,255,0.05); 
+        padding: 4px 0; 
+    }
+    .es-row:last-child { border-bottom: none; }
+    .es-transcode { font-size: 10px; opacity: 0.7; margin-left: 5px; }
+
+    /* --- DESKTOP LAYOUT (Default) --- */
+    /* Using !important to force alignment over any Unraid defaults */
+    
+    .es-name { 
+        width: 40% !important; 
+    }
+
+    .es-device { 
+        width: 25% !important; 
+        text-align: center !important; 
+    }
+
+    .es-user { 
+        width: 15% !important; 
+        text-align: center !important; 
+    }
+
+    .es-state { 
+        width: 20% !important; 
+        text-align: right !important; 
+    }
+
+
+    /* --- MOBILE OVERRIDES (Max Width 600px) --- */
+    @media only screen and (max-width: 600px) {
+        
+        .es-device, .es-user { 
+            display: none !important; 
+        }
+        
+        /* NAME: Fill available space */
+        .es-name { 
+            width: auto !important;     
+            flex: 1 1 auto !important;  
+            min-width: 0;               
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        /* STATE: Compact on right */
+        .es-state { 
+            width: auto !important;    
+            flex: 0 0 auto !important;  
+            margin-left: auto;          
+            text-align: right;
+            padding-left: 10px;
+        }
+    }
+</style>
+
+<?php
+$mytiles[$plugin]['column1'] = <<<EOT
+<tbody class="sortable" title="_(Emby Streams)_">
   <tr>
     <td>
-      {$custom_css}
       <div class='tile-header' id='{$plugin}-dashboard-card'>
         <div class='tile-header-left'>
-          <a href="{$emby_url}" target="_blank" title="_(Open WebUI)_">
-             <img src="/plugins/embystreams/emby.png" class="emby-icon-img icon">
-          </a>
-          <div class='tile-text'>
-            <span class='tile-header-main' id='{$plugin}-dashboard-title'>Emby Streams</span>
-            <span id="es_count_container"><span id="embystreams_count">0</span> Active Stream(s)</span>
+          <img src="/plugins/embystreams/emby.png" class="emby-icon-img icon">
+          <div class='section'>
+            <h3 class='tile-header-main' id='{$plugin}-dashboard-title'>
+              _(Emby Streams)_
+            </h3>
+            <span id="es_count_container"><span id="embystreams_count">0</span> _(Active Stream(s))_</span>
           </div>
         </div>
         <div class='tile-header-right'>
@@ -116,8 +124,8 @@ $widget_html = <<<EOT
   <tr>
     <td>
         <div id="embystreams_streams">
-            <div id="es_retrieving" class="es-loading">
-                _(Retrieving Data...)_
+            <div id="es_retrieving">
+                <p align="center" style="font-style:italic;text-align:center;padding-top:10px;">_(Retrieving Data...)_</p>
             </div>
         </div>
     </td>
@@ -125,55 +133,41 @@ $widget_html = <<<EOT
 </tbody>
 EOT;
 
-// 5. ASSIGN TO UNRAID
-$mytiles[$plugin]['column1'] = $widget_html;
-
-// 6. COMPATIBILITY PATCH (Unraid < 7.2)
-// This ensures the header title displays correctly on older versions
-$unraid_version = parse_ini_file('/etc/unraid-version');
-$version_num = $unraid_version['version'] ?? "6.0";
-
-if (version_compare($version_num, '7.2', '<')) {
+// COMPATIBILITY BLOCK FOR UNRAID 7.2+
+$isResponsiveWebgui = version_compare(parse_ini_file('/etc/unraid-version')['version'] ?? "", '7.2', '>=');
+if ( ! $isResponsiveWebgui) {
     $mytiles[$plugin]["column1"] .= <<<EOT
-<script>
-    $(function() {
-        $('#{$plugin}-dashboard-title').css('display', 'block'); 
-        $('#{$plugin}-settings-button').prependTo('#{$plugin}-dashboard-card');
-    });
-</script>
-EOT;
+        <script>
+            $(function() {
+                $('#{$plugin}-dashboard-title').replaceWith(function() {
+                    return $(this).text() + "<br>";
+                });
+                $('#{$plugin}-settings-button').prependTo('#{$plugin}-dashboard-card');
+            });
+        </script>
+    EOT;
 }
 ?>
 
 <script>
     var embyPollInterval = <?=$poll_interval;?>;
-    var embyCsrfToken = "<?=htmlspecialchars($csrf_token, ENT_QUOTES, 'UTF-8');?>";
     
     function updateEmbyDashboard() {
-        $.ajax({
-            url: "/plugins/embystreams/embystreams_api.php",
-            method: "GET",
-            headers: { "X-CSRF-Token": embyCsrfToken },
-            timeout: 5000,
-            success: function(data) {
-                if (data) {
-                    $("#embystreams_streams").html(data);
-                    var count = $("#embystreams_streams .es-row").length;
-                    // Reset count if specific message returns
-                    if(data.indexOf("No active streams") !== -1) { count = 0; }
-                    $("#embystreams_count").text(count);
-                }
-            },
-            error: function(xhr) {
-                $("#embystreams_streams").html("<div class='es-error'>_(Connection Error)_</div>");
+        $.get("/plugins/embystreams/embystreams_api.php", function(data) {
+            if (data) {
+                // 1. Update list
+                $("#embystreams_streams").html(data);
+                
+                // 2. Update count
+                var count = $("#embystreams_streams .es-row").length;
+                if(data.indexOf("No active streams") !== -1) { count = 0; }
+                $("#embystreams_count").text(count);
             }
         });
     }
 
     $(function() {
-        // Run immediately
         updateEmbyDashboard();
-        // Set interval
         setInterval(updateEmbyDashboard, embyPollInterval);
     });
 </script>
