@@ -25,6 +25,22 @@ ini_set('log_errors', 1);
 header('Content-Type: text/html; charset=UTF-8');
 
 // =============================================================================
+// HELPER FUNCTION: Format time from seconds to readable format
+// =============================================================================
+
+function formatTime($seconds) {
+    $seconds = max(0, (int)$seconds);
+    $hours = floor($seconds / 3600);
+    $minutes = floor(($seconds % 3600) / 60);
+    $secs = $seconds % 60;
+
+    if ($hours > 0) {
+        return sprintf("%d:%02d:%02d", $hours, $minutes, $secs);
+    }
+    return sprintf("%d:%02d", $minutes, $secs);
+}
+
+// =============================================================================
 // 1. AUTHENTICATION & CSRF PROTECTION
 // =============================================================================
 
@@ -245,7 +261,7 @@ foreach ($sessions as $session) {
 // =============================================================================
 
 if (empty($active_streams)) {
-    echo "<div style='padding:15px; text-align:center; opacity:0.6; font-style:italic;'>No active streams</div>";
+    echo "<div style='padding:15px; text-align:center; opacity:0.6; font-style:italic;'>_(No active streams)_</div>";
     exit;
 }
 
@@ -255,14 +271,27 @@ foreach ($active_streams as $s) {
     $user = isset($s['UserName']) ? htmlspecialchars($s['UserName'], ENT_QUOTES, 'UTF-8') : 'Unknown';
     
     // Build title
-    $title = isset($s['NowPlayingItem']['Name']) ? 
+    $episodeName = isset($s['NowPlayingItem']['Name']) ? 
         htmlspecialchars($s['NowPlayingItem']['Name'], ENT_QUOTES, 'UTF-8') : 
         'Unknown';
     
-    // Add series name if it's a TV show
+    // Add series name and episode info if it's a TV show
     if (isset($s['NowPlayingItem']['SeriesName'])) {
-        $series = htmlspecialchars($s['NowPlayingItem']['SeriesName'], ENT_QUOTES, 'UTF-8');
-        $title = $series . " - " . $title;
+        $seriesName = htmlspecialchars($s['NowPlayingItem']['SeriesName'], ENT_QUOTES, 'UTF-8');
+        
+        // Check if we have season and episode numbers
+        if (isset($s['NowPlayingItem']['ParentIndexNumber']) && isset($s['NowPlayingItem']['IndexNumber'])) {
+            $season = str_pad($s['NowPlayingItem']['ParentIndexNumber'], 2, '0', STR_PAD_LEFT);
+            $episode = str_pad($s['NowPlayingItem']['IndexNumber'], 2, '0', STR_PAD_LEFT);
+            // Format: "Show Name - S01E05 - Episode Name"
+            $title = "$seriesName - S{$season}E{$episode} - $episodeName";
+        } else {
+            // Fallback if season/episode numbers aren't available
+            $title = "$seriesName - $episodeName";
+        }
+    } else {
+        // Not a TV show, just use the name (movie, music, etc.)
+        $title = $episodeName;
     }
     
     $device = isset($s['DeviceName']) ? 
@@ -275,15 +304,71 @@ foreach ($active_streams as $s) {
     $status_color = $is_paused ? "#f0ad4e" : "#8cc43c";
     $status_icon = $is_paused ? "fa-pause" : "fa-play";
     
-    // Check transcode status
+    // =============================================================================
+    // TIME TRACKING: Extract position and duration (Emby uses ticks - 10,000,000 ticks = 1 second)
+    // =============================================================================
+    $position = isset($s['PlayState']['PositionTicks']) ? $s['PlayState']['PositionTicks'] / 10000000 : 0;
+    $duration = isset($s['NowPlayingItem']['RunTimeTicks']) ? $s['NowPlayingItem']['RunTimeTicks'] / 10000000 : 0;
+    
+    $progressStr = formatTime($position);
+    $durationStr = formatTime($duration);
+    $timeDisplay = "$progressStr / $durationStr";
+    
+    // =============================================================================
+    // TRANSCODE DETAILS: Extract detailed transcoding information
+    // =============================================================================
     $play_method = isset($s['PlayState']['PlayMethod']) ? 
         htmlspecialchars($s['PlayState']['PlayMethod'], ENT_QUOTES, 'UTF-8') : 
         'DirectPlay';
     $is_transcoding = ($play_method === 'Transcode');
     
-    $tooltip = htmlspecialchars("$status_text ($play_method)", ENT_QUOTES, 'UTF-8');
+    $transcodeDetails = [];
     
-    // Output stream row
+    if ($is_transcoding && isset($s['TranscodingInfo'])) {
+        $ti = $s['TranscodingInfo'];
+        
+        // Video transcoding status
+        if (isset($ti['IsVideoDirect'])) {
+            $transcodeDetails[] = $ti['IsVideoDirect'] ? "Video: Direct Stream" : "Video: Transcoding";
+        }
+        
+        // Audio transcoding status
+        if (isset($ti['IsAudioDirect'])) {
+            $transcodeDetails[] = $ti['IsAudioDirect'] ? "Audio: Direct Stream" : "Audio: Transcoding";
+        }
+        
+        // Video codec
+        if (isset($ti['VideoCodec'])) {
+            $transcodeDetails[] = "Codec: " . strtoupper($ti['VideoCodec']);
+        }
+        
+        // Transcode reasons
+        if (isset($ti['TranscodeReasons']) && is_array($ti['TranscodeReasons'])) {
+            $transcodeDetails[] = "Reason: " . implode(', ', $ti['TranscodeReasons']);
+        }
+        
+        // Hardware acceleration
+        if (isset($ti['HardwareAccelerationType']) && $ti['HardwareAccelerationType']) {
+            $transcodeDetails[] = "HW Accel: " . $ti['HardwareAccelerationType'];
+        }
+    } elseif ($play_method === 'DirectStream') {
+        $transcodeDetails[] = "Direct Stream (Container remux)";
+    } else {
+        $transcodeDetails[] = "Direct Play";
+    }
+    
+    // Build transcode tooltip
+    $transcodeTooltip = !empty($transcodeDetails) ? 
+        htmlspecialchars(implode(" | ", $transcodeDetails), ENT_QUOTES, 'UTF-8') : 
+        'Transcoding';
+    
+    // Build state tooltip (includes time and play method)
+    $stateTooltip = htmlspecialchars("$status_text | $timeDisplay | $play_method", ENT_QUOTES, 'UTF-8');
+    
+    // =============================================================================
+    // OUTPUT HTML
+    // =============================================================================
+    
     echo "<div class='es-row'>";
     
     // Name
@@ -298,14 +383,18 @@ foreach ($active_streams as $s) {
     
     // User
     echo "<span class='es-user' style='white-space:nowrap; overflow:hidden; text-overflow:ellipsis;' title='" . $user . "'>
-            <i class='fa fa-user' style='opacity:0.3; margin-right:4px;'></i>" . $user . "
+            " . $user . "
           </span>";
     
-    // State
-    echo "<span class='es-state' align='right' style='color:" . $status_color . "; font-weight:bold; cursor:help;' title='" . $tooltip . "'>";
+    // State (with time display and transcode icon)
+    echo "<span class='es-state' align='right' style='color:" . $status_color . "; font-weight:bold; cursor:help;' title='" . $stateTooltip . "'>";
+    
+    // Transcode icon with detailed tooltip
     if ($is_transcoding) {
-        echo "<i class='fa fa-exchange es-transcode' title='_(Transcoding)_'></i> ";
+        echo "<i class='fa fa-exchange es-transcode' style='cursor:help;' title='" . $transcodeTooltip . "'></i> ";
     }
+    
+    // Play/Pause icon and status
     echo "<i class='fa " . $status_icon . "' style='font-size:10px; margin-right:4px;'></i>" . $status_text;
     echo "</span>";
     
