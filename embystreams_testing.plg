@@ -2,15 +2,15 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "embystreams">
 <!ENTITY author    "gthrift">
-<!ENTITY version   "2026.01.06">
+<!ENTITY version   "2026.02.01">
 <!ENTITY launch    "Settings/EmbyStreamsSettings">
-<!ENTITY gitURL    "https://raw.githubusercontent.com/gthrift/unraid-embystreams/master">
-<!ENTITY pluginURL "&gitURL;/embystreams.plg">
+<!ENTITY gitURL    "https://raw.githubusercontent.com/gthrift/unraid-embystreams/main">
+<!ENTITY pluginURL "&gitURL;/embystreams_testing.plg">
 <!ENTITY emhttp    "/usr/local/emhttp/plugins/&name;">
 <!ENTITY plgPATH   "/boot/config/plugins/&name;">
 ]>
 
-<PLUGIN name="&name;" 
+<PLUGIN name="&name;"
         author="&author;" 
         version="&version;" 
         launch="&launch;" 
@@ -21,12 +21,12 @@
         icon="emby.png">
 
 <CHANGES>
-###2026.01.06
-- Initial release.
+###2026.02.01
+- Testing Release (Switched to 'main' branch).
 </CHANGES>
 
 <OVERVIEW>
-A plugin to create a dashboard widget that shows your active Emby streams
+A plugin to create a dashboard widget that shows your active Emby streams (Testing Branch)
 </OVERVIEW>
 
 <FILE Name="&emhttp;/EmbyStreamsSettings.page">
@@ -51,36 +51,31 @@ A plugin to create a dashboard widget that shows your active Emby streams
 mkdir -p "&plgPATH;"
 
 # 2. Set Default Config if missing
-# We use &gt; for redirection to satisfy XML parser
 if [ ! -f "&plgPATH;/embystreams.cfg" ]; then
-    echo "HOST=''" &gt; "&plgPATH;/embystreams.cfg"
-    echo "PORT='8096'" &gt;&gt; "&plgPATH;/embystreams.cfg"
-    echo "API_KEY=''" &gt;&gt; "&plgPATH;/embystreams.cfg"
-    echo "POLL_INTERVAL='5'" &gt;&gt; "&plgPATH;/embystreams.cfg"
-    echo "DISPLAY_WIDGET='1'" &gt;&gt; "&plgPATH;/embystreams.cfg"
-    echo "DISPLAY_NAV='1'" &gt;&gt; "&plgPATH;/embystreams.cfg"
+    echo "HOST=''" > "&plgPATH;/embystreams.cfg"
+    echo "PORT='8096'" >> "&plgPATH;/embystreams.cfg"
+    echo "API_KEY=''" >> "&plgPATH;/embystreams.cfg"
+    echo "POLL_INTERVAL='5'" >> "&plgPATH;/embystreams.cfg"
+    echo "DISPLAY_WIDGET='1'" >> "&plgPATH;/embystreams.cfg"
+    echo "DISPLAY_NAV='1'" >> "&plgPATH;/embystreams.cfg"
+    echo "USE_HTTPS='0'" >> "&plgPATH;/embystreams.cfg"
 fi
 
-# 4. TOGGLE LOGIC
+# 3. TOGGLE LOGIC (Hide/Show Dashboard Widget based on config)
 CFG_FILE="&plgPATH;/embystreams.cfg"
 WIDGET_FILE="&emhttp;/EmbyStreams.page"
 
-# Load the config directly into Bash (Safest method)
 if [ -f "$CFG_FILE" ]; then
     source "$CFG_FILE"
 fi
 
-# Default to 1 if the variable didn't load for some reason
 DISPLAY_WIDGET="${DISPLAY_WIDGET:-1}"
 
-# Rename logic
 if [ "$DISPLAY_WIDGET" == "0" ]; then
-    # Hide: Rename .page to .page.off
     if [ -f "$WIDGET_FILE" ]; then
         mv "$WIDGET_FILE" "$WIDGET_FILE.off"
     fi
 else
-    # Show: Rename .page.off back to .page
     if [ -f "$WIDGET_FILE.off" ]; then
         mv "$WIDGET_FILE.off" "$WIDGET_FILE"
     fi
@@ -88,7 +83,7 @@ fi
 
 echo ""
 echo "-----------------------------------------------------------"
-echo " &name; has been installed."
+echo " &name; (Testing) has been installed."
 echo " Version: &version;"
 echo "-----------------------------------------------------------"
 echo ""
@@ -99,27 +94,20 @@ echo ""
 <INLINE>
 echo "Uninstalling &name;..."
 
-# 1. Remove the package from the running system (RAM)
-# We target the installed package record directly to avoid "No such package" errors
-removepkg /var/log/packages/&name;-*
-
-# 2. Remove the WebUI files
+# 1. Remove WebUI files
 rm -rf "&emhttp;"
 
-# 3. Remove the PLG file itself
-# Ensures the plugin is removed from the plugins list
-rm -f "/boot/config/plugins/&name;.plg"
-
-# 4. Cleanup the flash drive directory
-# We remove the config folder artifacts but preserve the cfg file
-rm -f "&plgPATH;/*.txz"
-rm -f "&plgPATH;/*.sha256"
+# 2. Remove the PLG file itself
+# Corrects the path to the root plugins folder
+rm -f "/boot/config/plugins/embystreams_testing.plg"
+rm -f "/boot/config/plugins/embystreams.plg"
 
 echo ""
 echo "-----------------------------------------------------------"
 echo " &name; has been uninstalled."
-echo " Version: &version;"
 echo "-----------------------------------------------------------"
 echo ""
 </INLINE>
 </FILE>
+
+</PLUGIN>
