@@ -7,6 +7,7 @@
 <!ENTITY gitURL    "https://raw.githubusercontent.com/gthrift/unraid-embystreams/main">
 <!ENTITY pluginURL "&gitURL;/embystreams.plg">
 <!ENTITY archive   "&gitURL;/archive/&name;-&version;.txz">
+<!ENTITY sha256    "40740e0e932a5847f06f88e99f4dd1b54c4c976a114e3f642c9c1422a3fcc99e">
 <!ENTITY emhttp    "/usr/local/emhttp/plugins/&name;">
 <!ENTITY plgPATH   "/boot/config/plugins/&name;">
 ]>
@@ -54,14 +55,11 @@ A plugin to create a dashboard widget that shows your active Emby streams
         <INLINE>
                 # Set Default Config if missing
                 if [ ! -f "&plgPATH;/embystreams.cfg" ]; then
-                    echo "POLL_INTERVAL='5'" > "&plgPATH;/embystreams.cfg"
-                    echo "WIDGET_ICON='streams'" >> "&plgPATH;/embystreams.cfg"
-                    echo "WIDGET_TITLE='Emby Streams'" >> "&plgPATH;/embystreams.cfg"
-                fi
-                
-                # Create empty servers config if missing
-                if [ ! -f "&plgPATH;/servers.json" ]; then
-                    echo "[]" > "&plgPATH;/servers.json"
+                    echo "HOST=''" > "&plgPATH;/embystreams.cfg"
+                    echo "PORT='8096'" >> "&plgPATH;/embystreams.cfg"
+                    echo "API_KEY=''" >> "&plgPATH;/embystreams.cfg"
+                    echo "POLL_INTERVAL='5'" >> "&plgPATH;/embystreams.cfg"
+                    echo "USE_HTTPS='0'" >> "&plgPATH;/embystreams.cfg"
                 fi
                 
                 echo ""
@@ -85,7 +83,7 @@ A plugin to create a dashboard widget that shows your active Emby streams
                        &plgPATH;/*.sha256
                 
                 # Configuration files are preserved for future reinstallation
-                # To manually remove configs, delete: &plgPATH;/embystreams.cfg and &plgPATH;/servers.json
+                # To manually remove configs, delete: &plgPATH;/embystreams.cfg
                 
                 echo ""
                 echo "-----------------------------------------------------------"
@@ -95,12 +93,9 @@ A plugin to create a dashboard widget that shows your active Emby streams
                 echo ""
                 echo " To completely remove all settings, manually delete:"
                 echo " &plgPATH;/embystreams.cfg"
-                echo " &plgPATH;/servers.json"
                 echo "-----------------------------------------------------------"
                 echo ""
         </INLINE>
 </FILE>
-
-</PLUGIN>
 
 </PLUGIN>
