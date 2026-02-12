@@ -34,11 +34,17 @@ Tag="film"
 ?>
 
 <style>
-    .emby-icon-img { width: 32px; height: 32px; } 
+    .emby-icon-img { 
+        width: 32px;
+        height: 32px;
+        margin-top: 2px !important;
+        object-fit: contain;
+    }
 
     /* Prevent widget from growing beyond container */
     #embystreams-dashboard-card { 
         max-width: 100%; 
+        overflow: hidden;
     }
     
     /* Constrain table container */
