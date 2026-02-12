@@ -99,12 +99,18 @@ echo ""
 <INLINE>
 echo "Uninstalling &name;..."
 
-# Remove Plugin Files
+# 1. Remove the WebUI files (The 'software')
 rm -rf "&emhttp;"
 
-# Remove the PLG file itself
-rm -f "&plgPATH;/&name;.plg"
-removepkg "&plgPATH;/*.txz"
+# 2. Remove the PLG file itself
+# Corrected path: points to the root plugins folder, not the subdirectory
+rm -f "/boot/config/plugins/&name;.plg"
+
+# 3. Cleanup artifacts (if any existed)
+rm -f "&plgPATH;/*.txz"
+
+# Note: We intentionally preserve &plgPATH;/embystreams.cfg 
+# so user settings are saved if they reinstall.
 
 echo ""
 echo "-----------------------------------------------------------"
