@@ -19,20 +19,17 @@ Tag="film"
 ?>
 
 <style>
-    /* 1. Icon Styling */
     .emby-icon-img { 
         width: 32px; 
         height: 32px;
         object-fit: contain;
     }
 
-    /* 2. Container Constraint */
     #embystreams-dashboard-card {
         width: 100%;
         max-width: 100%;
     }
 
-    /* 3. Row Styling */
     .es-row { 
         display: flex;
         align-items: center;
@@ -43,24 +40,18 @@ Tag="film"
     }
     .es-row:last-child { border-bottom: none; }
 
-    /* 4. Text Truncation Base */
     .es-row > span {
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
     }
 
-    /* 5. FLEX COLUMN SIZING (The Fix) */
-    
-    /* NAME: flex: 1 means "take whatever space is left"
-       min-width: 0 means "you can shrink smaller than your text" */
     .es-name { 
         flex: 1 1 auto; 
         min-width: 0; 
         padding-right: 10px;
     }
 
-    /* OTHERS: Fixed flex basis ensures they retain their size */
     .es-device { flex: 0 0 25%; text-align: center; }
     .es-user   { flex: 0 0 15%; text-align: center; }
     .es-state  { flex: 0 0 20%; text-align: right; }
