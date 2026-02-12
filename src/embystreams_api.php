@@ -391,7 +391,7 @@ foreach ($active_streams as $s) {
     
     // Transcode icon with detailed tooltip
     if ($is_transcoding) {
-        echo "<i class='fa fa-exchange es-transcode' style='cursor:help;' title='" . $transcodeTooltip . "'></i> ";
+        echo "<i class='fa fa-random es-transcode' style='color:#e5a00d;cursor:help;' title='" . $transcodeTooltip . "'></i> ";
     }
     
     // Play/Pause icon and status
