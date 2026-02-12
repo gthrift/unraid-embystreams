@@ -67,7 +67,7 @@ function formatTicks($ticks) {
 
 // 5. Generate Output
 if (empty($active_streams)) {
-    echo "<div style='padding:15px; text-align:center; opacity:0.6; font-style:italic;'>_(No active streams)_</div>";
+    echo "<div style='padding:15px; text-align:center; opacity:0.6; font-style:italic;'>No active streams</div>";
 } else {
     foreach ($active_streams as $s) {
         $user = htmlspecialchars($s['UserName']);
