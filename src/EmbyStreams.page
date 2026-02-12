@@ -1,66 +1,104 @@
-Menu="Dashboard"
+Menu="Dashboard:0"
 Icon="emby.png"
 Tag="film"
 ---
 <?php
-    if (session_status() === PHP_SESSION_NONE) { session_start(); }
-    if (empty($_SESSION['embystreams_csrf'])) { $_SESSION['embystreams_csrf'] = bin2hex(random_bytes(32)); }
+    // Initialize session for CSRF protection
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    
+    // Generate CSRF token if not exists
+    if (empty($_SESSION['embystreams_csrf'])) {
+        $_SESSION['embystreams_csrf'] = bin2hex(random_bytes(32));
+    }
     
     $plugin = "embystreams";
     $cfg = parse_ini_file("/boot/config/plugins/embystreams/embystreams.cfg");
     
+    // Validate and sanitize poll interval
     $poll_interval = isset($cfg['POLL_INTERVAL']) ? max(1, min(60, (int)$cfg['POLL_INTERVAL'])) * 1000 : 5000;
+    
     $host = $cfg['HOST'] ?? '';
-    $port = max(1, min(65535, (int)($cfg['PORT'] ?? 8096)));
+    $port = $cfg['PORT'] ?? '8096';
+    
+    // Validate port
+    $port = max(1, min(65535, (int)$port));
+    
+    // More secure protocol detection - allow explicit HTTPS setting
     $use_https = ($cfg['USE_HTTPS'] ?? '0') === '1';
     $protocol = $use_https ? 'https' : 'http';
+    
     $emby_url = htmlspecialchars("$protocol://$host:$port/web/index.html", ENT_QUOTES, 'UTF-8');
     $csrf_token = $_SESSION['embystreams_csrf'];
 ?>
 
 <style>
-    .emby-icon-img { 
-        width: 32px; 
-        height: 32px;
-        object-fit: contain;
-    }
+    .emby-icon-img { width: 32px; height: 32px; } 
 
-    #embystreams-dashboard-card {
+    /* Base Row Styling */
+    .es-row, .es-header-row { 
+        display: flex; 
+        align-items: center; 
         width: 100%;
-        max-width: 100%;
-    }
-
-    .es-row { 
-        display: flex;
-        align-items: center;
-        width: 100%;
-        border-bottom: 1px solid rgba(255,255,255,0.05);
-        padding: 4px 0;
         box-sizing: border-box;
     }
+    
+    .es-row { 
+        border-bottom: 1px solid rgba(255,255,255,0.05); 
+        padding: 4px 0; 
+    }
     .es-row:last-child { border-bottom: none; }
+    .es-transcode { font-size: 10px; opacity: 0.7; margin-left: 5px; }
 
-    .es-row > span {
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
+    /* --- DESKTOP LAYOUT (Default) --- */
+    /* Using !important to force alignment over any Unraid defaults */
+    
     .es-name { 
-        flex: 1 1 auto; 
-        min-width: 0; 
-        padding-right: 10px;
+        width: 40% !important; 
     }
 
-    .es-device { flex: 0 0 25%; text-align: center; }
-    .es-user   { flex: 0 0 15%; text-align: center; }
-    .es-state  { flex: 0 0 20%; text-align: right; }
+    .es-device { 
+        width: 25% !important; 
+        text-align: center !important; 
+    }
 
-    /* --- MOBILE OVERRIDES --- */
+    .es-user { 
+        width: 15% !important; 
+        text-align: center !important; 
+    }
+
+    .es-state { 
+        width: 20% !important; 
+        text-align: right !important; 
+    }
+
+
+    /* --- MOBILE OVERRIDES (Max Width 600px) --- */
     @media only screen and (max-width: 600px) {
-        .es-device, .es-user { display: none !important; }
-        .es-name { flex: 1; }
-        .es-state { flex: 0 0 auto; margin-left: auto; padding-left: 10px; }
+        
+        .es-device, .es-user { 
+            display: none !important; 
+        }
+        
+        /* NAME: Fill available space */
+        .es-name { 
+            width: auto !important;     
+            flex: 1 1 auto !important;  
+            min-width: 0;               
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        /* STATE: Compact on right */
+        .es-state { 
+            width: auto !important;    
+            flex: 0 0 auto !important;  
+            margin-left: auto;          
+            text-align: right;
+            padding-left: 10px;
+        }
     }
 </style>
 
@@ -68,43 +106,45 @@ Tag="film"
 $mytiles[$plugin]['column1'] = <<<EOT
 <tbody class="sortable" title="_(Emby Streams)_">
   <tr>
-    <td id='{$plugin}-dashboard-card'>
-      <span class='tile-header'>
-        <span class='tile-header-left'>
-          <img src="/plugins/embystreams/emby.png" class="emby-icon-img">
+    <td>
+      <div class='tile-header' id='{$plugin}-dashboard-card'>
+        <div class='tile-header-left'>
+          <img src="/plugins/embystreams/emby.png" class="emby-icon-img icon">
           <div class='section'>
-            <h3 class='tile-header-main'>_(Emby Streams)_</h3>
-            <span id="es_count_container">
-                <span id="embystreams_count">0</span> _(Active Stream(s))_
-            </span>
+            <h3 class='tile-header-main' id='{$plugin}-dashboard-title'>
+              _(Emby Streams)_
+            </h3>
+            <span id="es_count_container"><span id="embystreams_count">0</span> _(Active Stream(s))_</span>
           </div>
-        </span>
-        <span class='tile-header-right'>
-           <span class='tile-header-right-controls'>
-              <a href="{$emby_url}" target="_blank" title="_(Open Emby WebUI)_">
-                <i class="fa fa-fw fa-external-link"></i>
-              </a>
-              <a href="/Settings/EmbyStreamsSettings" title="_(Settings)_">
-                <i class="fa fa-fw fa-cog"></i>
-              </a>
-           </span>
-        </span>
-      </span>
+        </div>
+        <div class='tile-header-right'>
+          <div class='tile-header-right-controls'>
+            <a href="{$emby_url}" target="_blank" title="_(Open Emby WebUI)_">
+              <i class="fa fa-fw fa-external-link control"></i>
+            </a>
+            <a id="{$plugin}-settings-button" href="/Settings/EmbyStreamsSettings" title="_(Settings)_">
+              <i class="fa fa-fw fa-cog control"></i>
+            </a>
+          </div>
+        </div>
+      </div>
     </td>
   </tr>
-
   <tr>
-    <td>
-        <div class="es-row" style="font-weight:bold; opacity:0.7; font-size:0.9em;">
+    <td>            
+        <div class="es-header-row">
             <span class="es-name">_(Name)_</span>
             <span class="es-device">_(Device)_</span>
             <span class="es-user">_(User)_</span>
             <span class="es-state">_(State)_</span>
         </div>
-        
+    </td>
+  </tr>
+  <tr>
+    <td>
         <div id="embystreams_streams">
             <div id="es_retrieving">
-                 <p align="center" style="font-style:italic; padding-top:10px;">_(Retrieving Data...)_</p>
+                <p align="center" style="font-style:italic;text-align:center;padding-top:10px;">_(Retrieving Data...)_</p>
             </div>
         </div>
     </td>
@@ -112,10 +152,19 @@ $mytiles[$plugin]['column1'] = <<<EOT
 </tbody>
 EOT;
 
-// COMPATIBILITY BLOCK
+// COMPATIBILITY BLOCK FOR UNRAID 7.2+
 $isResponsiveWebgui = version_compare(parse_ini_file('/etc/unraid-version')['version'] ?? "", '7.2', '>=');
 if ( ! $isResponsiveWebgui) {
-    $mytiles[$plugin]["column1"] .= "<script>console.log('EmbyStreams: Legacy Mode Active');</script>";
+    $mytiles[$plugin]["column1"] .= <<<EOT
+        <script>
+            $(function() {
+                $('#{$plugin}-dashboard-title').replaceWith(function() {
+                    return $(this).text() + "<br>";
+                });
+                $('#{$plugin}-settings-button').prependTo('#{$plugin}-dashboard-card');
+            });
+        </script>
+    EOT;
 }
 ?>
 
@@ -123,28 +172,39 @@ if ( ! $isResponsiveWebgui) {
     var embyPollInterval = <?=$poll_interval;?>;
     var embyCsrfToken = "<?=htmlspecialchars($csrf_token, ENT_QUOTES, 'UTF-8');?>";
     var embyLastUpdate = 0;
-    var embyMinInterval = 1000;
+    var embyMinInterval = 1000; // Minimum 1 second between requests
     
     function updateEmbyDashboard() {
+        // Client-side rate limiting
         var now = Date.now();
-        if (now - embyLastUpdate < embyMinInterval) return;
+        if (now - embyLastUpdate < embyMinInterval) {
+            return;
+        }
         embyLastUpdate = now;
         
         $.ajax({
             url: "/plugins/embystreams/embystreams_api.php",
             method: "GET",
-            headers: { "X-CSRF-Token": embyCsrfToken },
+            headers: {
+                "X-CSRF-Token": embyCsrfToken
+            },
             timeout: 5000,
             success: function(data) {
                 if (data) {
+                    // 1. Update list
                     $("#embystreams_streams").html(data);
+                    
+                    // 2. Update count
                     var count = $("#embystreams_streams .es-row").length;
                     if(data.indexOf("No active streams") !== -1) { count = 0; }
                     $("#embystreams_count").text(count);
                 }
             },
             error: function(xhr, status, error) {
-                $("#embystreams_streams").html("<div style='padding:15px; text-align:center; color:#d44;'>_(Connection Error)_</div>");
+                console.error("Emby Streams Error:", status, error);
+                $("#embystreams_streams").html(
+                    "<div style='padding:15px; text-align:center; color:#d44;'>_(Connection Error)_</div>"
+                );
             }
         });
     }
