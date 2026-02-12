@@ -96,7 +96,7 @@ Cond="parse_ini_file('/boot/config/plugins/embystreams/embystreams.cfg')['DISPLA
 
 <?php
 $mytiles[$plugin]['column1'] = <<<EOT
-<tbody class="sortable" title="Emby Streams">
+<tbody class="sortable" title="_(Emby Streams)_">
   <tr>
     <td>
       <div class='tile-header' id='{$plugin}-dashboard-card'>
@@ -104,17 +104,17 @@ $mytiles[$plugin]['column1'] = <<<EOT
           <img src="/plugins/embystreams/emby.png" class="emby-icon-img icon">
           <div class='section'>
             <h3 class='tile-header-main' id='{$plugin}-dashboard-title'>
-              Emby Streams
+              _(Emby Streams)_
             </h3>
-            <span id="es_count_container"><span id="embystreams_count">0</span> Active Stream(s)</span>
+            <span id="es_count_container"><span id="embystreams_count">0</span> _(Active Stream(s))_</span>
           </div>
         </div>
         <div class='tile-header-right'>
           <div class='tile-header-right-controls'>
-            <a href="{$emby_url}" target="_blank" title="Open Emby WebUI">
+            <a href="{$emby_url}" target="_blank" title="_(Open Emby WebUI)_">
               <i class="fa fa-fw fa-external-link control"></i>
             </a>
-            <a id="{$plugin}-settings-button" href="/Settings/EmbyStreamsSettings" title="Settings">
+            <a id="{$plugin}-settings-button" href="/Settings/EmbyStreamsSettings" title="_(Settings)_">
               <i class="fa fa-fw fa-cog control"></i>
             </a>
           </div>
@@ -125,10 +125,10 @@ $mytiles[$plugin]['column1'] = <<<EOT
   <tr>
     <td>            
         <div class="es-header-row">
-            <span class="es-name">Name</span>
-            <span class="es-device">Device</span>
-            <span class="es-user">User</span>
-            <span class="es-state">State</span>
+            <span class="es-name">_(Name)_</span>
+            <span class="es-device">_(Device)_</span>
+            <span class="es-user">_(User)_</span>
+            <span class="es-state">_(State)_</span>
         </div>
     </td>
   </tr>
@@ -136,7 +136,7 @@ $mytiles[$plugin]['column1'] = <<<EOT
     <td>
         <div id="embystreams_streams">
             <div id="es_retrieving">
-                <p align="center" style="font-style:italic;text-align:center;padding-top:10px;">Retrieving Data...</p>
+                <p align="center" style="font-style:italic;text-align:center;padding-top:10px;">_(Retrieving Data...)_</p>
             </div>
         </div>
     </td>
