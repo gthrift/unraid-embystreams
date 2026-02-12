@@ -67,7 +67,7 @@ function formatTicks($ticks) {
 
 // 5. Generate Output
 if (empty($active_streams)) {
-    echo "<div style='padding:15px; text-align:center; opacity:0.6; font-style:italic;'>_(No active streams)_</div>";
+    echo "<div style='padding:15px; text-align:center; opacity:0.6; font-style:italic;'>No active streams</div>";
 } else {
     foreach ($active_streams as $s) {
         $user = htmlspecialchars($s['UserName']);
@@ -157,9 +157,9 @@ if (empty($active_streams)) {
         // State
         echo "<span class='es-state' style='color:$status_color; font-weight:bold; cursor:help;' title='$progress_tooltip'>";
         if ($is_transcoding) {
-            echo "<i class='fa fa-random es-transcode' title='$transcode_tooltip'></i> ";
+            echo "<i class='fa fa-random es-transcode' style='color:#e5a00d; font-size:11px;' title='$transcode_tooltip'></i> ";
         }
-        echo "<i class='fa $status_icon' style='font-size:10px; margin-right:4px;'></i>$status_text";
+        echo "<i class='fa $status_icon' style='font-size:11px; margin-right:4px;'></i>$status_text";
         echo "</span>";
 
         echo "</div>";
