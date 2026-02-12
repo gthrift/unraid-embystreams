@@ -1,56 +1,56 @@
-Menu="Dashboard"
+Menu="Dashboard:0"
 Icon="emby.png"
 Tag="film"
 ---
 <?php
-    // Initialize session for CSRF protection
+    // 1. SAFE SESSION START
     if (session_status() === PHP_SESSION_NONE) {
         session_start();
     }
     
-    // Generate CSRF token if not exists
+    // 2. CONFIGURATION
+    $plugin = "embystreams";
+    $config_file = "/boot/config/plugins/embystreams/embystreams.cfg";
+    
+    // Default values if config is missing
+    $poll_interval = 5000;
+    $emby_url = "http://localhost:8096";
+    
+    if (file_exists($config_file)) {
+        $cfg = parse_ini_file($config_file);
+        $poll_interval = isset($cfg['POLL_INTERVAL']) ? max(1, min(60, (int)$cfg['POLL_INTERVAL'])) * 1000 : 5000;
+        $host = $cfg['HOST'] ?? 'localhost';
+        $port = $cfg['PORT'] ?? '8096';
+        $use_https = ($cfg['USE_HTTPS'] ?? '0') === '1';
+        $protocol = $use_https ? 'https' : 'http';
+        $emby_url = htmlspecialchars("$protocol://$host:$port/web/index.html", ENT_QUOTES, 'UTF-8');
+    }
+
+    // CSRF Token
     if (empty($_SESSION['embystreams_csrf'])) {
         $_SESSION['embystreams_csrf'] = bin2hex(random_bytes(32));
     }
-    
-    $plugin = "embystreams";
-    $cfg = parse_ini_file("/boot/config/plugins/embystreams/embystreams.cfg");
-    
-    // Validate and sanitize poll interval (default 5000ms)
-    $poll_interval = isset($cfg['POLL_INTERVAL']) ? max(1, min(60, (int)$cfg['POLL_INTERVAL'])) * 1000 : 5000;
-    
-    $host = $cfg['HOST'] ?? '';
-    $port = $cfg['PORT'] ?? '8096';
-    
-    // Validate port
-    $port = max(1, min(65535, (int)$port));
-    
-    // Protocol detection
-    $use_https = ($cfg['USE_HTTPS'] ?? '0') === '1';
-    $protocol = $use_https ? 'https' : 'http';
-    
-    $emby_url = htmlspecialchars("$protocol://$host:$port/web/index.html", ENT_QUOTES, 'UTF-8');
     $csrf_token = $_SESSION['embystreams_csrf'];
 ?>
 
+<?php
+// 3. CSS STYLES (Namespaced)
+$custom_css = <<<EOT
 <style>
-    /* Namespace all styles to prevent conflicts */
+    /* Scope styles to this specific widget ID to avoid breaking other plugins */
     #embystreams_tile {
-        /* Inherit Unraid font settings */
         font-size: 1.2rem;
     }
-
-    /* Column Headers */
+    /* Flex header for alignment */
     .es-header-row {
         display: flex;
         padding: 4px 0;
-        border-bottom: 1px solid var(--border-default); /* Native theme border */
-        color: var(--text-muted); /* Native muted text color */
+        border-bottom: 1px solid var(--border-default);
+        color: var(--text-muted);
         font-weight: 500;
         font-size: 1.1rem;
         margin-bottom: 8px;
     }
-
     .es-header-row span {
         flex: 1;
         padding: 0 4px;
@@ -58,48 +58,33 @@ Tag="film"
         overflow: hidden;
         text-overflow: ellipsis;
     }
-    
-    /* Specific widths for columns to match data content */
+    /* Column sizing */
     .es-name { flex: 2 !important; }
     .es-device { flex: 1; }
     .es-user { flex: 1; }
     .es-state { flex: 0.8; text-align: right; }
-
-    /* Stream Content Container */
-    #embystreams_streams {
-        min-height: 40px;
-    }
-
-    /* Sub-text styling */
-    #es_count_container {
-        font-size: 1.1rem;
-        color: var(--text-muted);
-    }
     
-    /* Error State using native red */
-    .es-error {
-        padding: 15px; 
-        text-align: center; 
-        color: var(--text-red); /* Native error color */
-        font-weight: bold;
-    }
-
-    /* Native Unraid Icon overrides */
-    .emby-icon-img {
-        width: 48px;
-        height: 48px;
-    }
+    /* Native color support */
+    .es-error { color: var(--text-red); text-align: center; padding: 10px; }
+    .es-loading { color: var(--text-muted); font-style: italic; text-align: center; padding-top: 10px; }
+    
+    /* Icon sizing */
+    .emby-icon-img { width: 48px; height: 48px; }
 </style>
+EOT;
 
-<?php
-// We wrap the content in a div with a unique ID for styling scope
-$mytiles[$plugin]['column1'] = <<<EOT
+// 4. MAIN WIDGET HTML
+// Note: We use the native structure required by Unraid 6/7
+$widget_html = <<<EOT
 <tbody class="sortable" title="Emby Streams" id="embystreams_tile">
   <tr>
     <td>
+      {$custom_css}
       <div class='tile-header' id='{$plugin}-dashboard-card'>
         <div class='tile-header-left'>
-          <img src="/plugins/embystreams/emby.png" class="emby-icon-img icon">
+          <a href="{$emby_url}" target="_blank" title="_(Open WebUI)_">
+             <img src="/plugins/embystreams/emby.png" class="emby-icon-img icon">
+          </a>
           <div class='tile-text'>
             <span class='tile-header-main' id='{$plugin}-dashboard-title'>Emby Streams</span>
             <span id="es_count_container"><span id="embystreams_count">0</span> Active Stream(s)</span>
@@ -131,8 +116,8 @@ $mytiles[$plugin]['column1'] = <<<EOT
   <tr>
     <td>
         <div id="embystreams_streams">
-            <div id="es_retrieving">
-                <p align="center" style="font-style:italic; text-align:center; padding-top:10px; color:var(--text-muted);">_(Retrieving Data...)_</p>
+            <div id="es_retrieving" class="es-loading">
+                _(Retrieving Data...)_
             </div>
         </div>
     </td>
@@ -140,65 +125,55 @@ $mytiles[$plugin]['column1'] = <<<EOT
 </tbody>
 EOT;
 
-// COMPATIBILITY BLOCK FOR UNRAID 7.2+
-// The logic below ensures that if we are NOT on 7.2+, we patch the DOM to look correct.
-// On 7.2+, the HTML structure above (using .tile-header) is already native.
-$isResponsiveWebgui = version_compare(parse_ini_file('/etc/unraid-version')['version'] ?? "", '7.2', '>=');
-if ( ! $isResponsiveWebgui) {
+// 5. ASSIGN TO UNRAID
+$mytiles[$plugin]['column1'] = $widget_html;
+
+// 6. COMPATIBILITY PATCH (Unraid < 7.2)
+// This ensures the header title displays correctly on older versions
+$unraid_version = parse_ini_file('/etc/unraid-version');
+$version_num = $unraid_version['version'] ?? "6.0";
+
+if (version_compare($version_num, '7.2', '<')) {
     $mytiles[$plugin]["column1"] .= <<<EOT
-        <script>
-            $(function() {
-                // Legacy support adjustments
-                $('#{$plugin}-dashboard-title').css('display', 'block'); 
-                $('#{$plugin}-settings-button').prependTo('#{$plugin}-dashboard-card');
-            });
-        </script>
-    EOT;
+<script>
+    $(function() {
+        $('#{$plugin}-dashboard-title').css('display', 'block'); 
+        $('#{$plugin}-settings-button').prependTo('#{$plugin}-dashboard-card');
+    });
+</script>
+EOT;
 }
 ?>
 
 <script>
     var embyPollInterval = <?=$poll_interval;?>;
     var embyCsrfToken = "<?=htmlspecialchars($csrf_token, ENT_QUOTES, 'UTF-8');?>";
-    var embyLastUpdate = 0;
-    var embyMinInterval = 1000; 
     
     function updateEmbyDashboard() {
-        var now = Date.now();
-        if (now - embyLastUpdate < embyMinInterval) {
-            return;
-        }
-        embyLastUpdate = now;
-        
         $.ajax({
             url: "/plugins/embystreams/embystreams_api.php",
             method: "GET",
-            headers: {
-                "X-CSRF-Token": embyCsrfToken
-            },
+            headers: { "X-CSRF-Token": embyCsrfToken },
             timeout: 5000,
             success: function(data) {
                 if (data) {
-                    // 1. Update list
                     $("#embystreams_streams").html(data);
-                    
-                    // 2. Update count
                     var count = $("#embystreams_streams .es-row").length;
+                    // Reset count if specific message returns
                     if(data.indexOf("No active streams") !== -1) { count = 0; }
                     $("#embystreams_count").text(count);
                 }
             },
-            error: function(xhr, status, error) {
-                console.error("Emby Streams Error:", status, error);
-                $("#embystreams_streams").html(
-                    "<div class='es-error'>_(Connection Error)_</div>"
-                );
+            error: function(xhr) {
+                $("#embystreams_streams").html("<div class='es-error'>_(Connection Error)_</div>");
             }
         });
     }
 
     $(function() {
+        // Run immediately
         updateEmbyDashboard();
+        // Set interval
         setInterval(updateEmbyDashboard, embyPollInterval);
     });
 </script>
