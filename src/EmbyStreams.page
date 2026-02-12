@@ -38,7 +38,6 @@ Tag="film"
 
     /* Base Row Styling */
     .es-row, .es-header-row { 
-        display: flex; 
         align-items: center; 
         width: 100%;
         max-width: 100%;
@@ -60,7 +59,7 @@ Tag="film"
     }
 
     .es-device { 
-        width: 25% !important; 
+        width: 20% !important; 
         text-align: center !important; 
     }
 
