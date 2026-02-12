@@ -3,70 +3,65 @@ Icon="emby.png"
 Tag="film"
 ---
 <?php
-    // Initialize session for CSRF protection
-    if (session_status() === PHP_SESSION_NONE) {
-        session_start();
-    }
-    
-    // Generate CSRF token if not exists
-    if (empty($_SESSION['embystreams_csrf'])) {
-        $_SESSION['embystreams_csrf'] = bin2hex(random_bytes(32));
-    }
+    if (session_status() === PHP_SESSION_NONE) { session_start(); }
+    if (empty($_SESSION['embystreams_csrf'])) { $_SESSION['embystreams_csrf'] = bin2hex(random_bytes(32)); }
     
     $plugin = "embystreams";
     $cfg = parse_ini_file("/boot/config/plugins/embystreams/embystreams.cfg");
     
-    // Validate and sanitize poll interval
     $poll_interval = isset($cfg['POLL_INTERVAL']) ? max(1, min(60, (int)$cfg['POLL_INTERVAL'])) * 1000 : 5000;
-    
     $host = $cfg['HOST'] ?? '';
-    $port = $cfg['PORT'] ?? '8096';
-    
-    // Validate port
-    $port = max(1, min(65535, (int)$port));
-    
-    // More secure protocol detection - allow explicit HTTPS setting
+    $port = max(1, min(65535, (int)($cfg['PORT'] ?? 8096)));
     $use_https = ($cfg['USE_HTTPS'] ?? '0') === '1';
     $protocol = $use_https ? 'https' : 'http';
-    
     $emby_url = htmlspecialchars("$protocol://$host:$port/web/index.html", ENT_QUOTES, 'UTF-8');
     $csrf_token = $_SESSION['embystreams_csrf'];
 ?>
 
 <style>
-    /* Icon Styling - Matches Unraid's native .f32 class size */
+    /* 1. Icon Styling */
     .emby-icon-img { 
         width: 32px; 
         height: 32px;
         object-fit: contain;
-        /* Flexbox handles alignment now, no margins needed */
     }
 
-    /* Content Container - Handles the list of streams */
+    /* 2. Container Constraint - The Nuclear Option */
+    /* We force the table cell to never exceed the column width */
+    #embystreams-dashboard-card {
+        table-layout: fixed;
+        width: 100%;
+    }
+
+    /* 3. Stream List Container */
     #embystreams_streams {
         width: 100%;
-        overflow-x: auto; /* Allows scrolling if content is too wide */
-        overflow-y: hidden;
+        overflow-x: hidden; /* Hide overflow to prevent scrollbars in widget */
     }
 
-    /* Row Styling */
+    /* 4. Row Styling */
     .es-row { 
         display: flex;
         align-items: center;
         width: 100%;
         border-bottom: 1px solid rgba(255,255,255,0.05);
         padding: 4px 0;
+        /* CRITICAL: Ensure the row itself doesn't expand */
+        box-sizing: border-box;
     }
     .es-row:last-child { border-bottom: none; }
 
-    /* Text Constraint - Prevents stretching */
+    /* 5. Text Constraint - THE FIX */
     .es-row > span {
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+        /* CRITICAL: min-width: 0 allows flex items to shrink below their content size */
+        min-width: 0; 
     }
 
     /* --- COLUMN SIZING --- */
+    /* We use percentages that sum to 100% */
     .es-name   { width: 40%; }
     .es-device { width: 25%; text-align: center; }
     .es-user   { width: 15%; text-align: center; }
@@ -74,8 +69,8 @@ Tag="film"
 
     /* --- MOBILE OVERRIDES --- */
     @media only screen and (max-width: 600px) {
-        .es-device, .es-user { display: none; }
-        .es-name { flex: 1; }
+        .es-device, .es-user { display: none !important; }
+        .es-name { flex: 1; width: auto; }
         .es-state { width: auto; margin-left: auto; padding-left: 10px; }
     }
 </style>
@@ -84,11 +79,10 @@ Tag="film"
 $mytiles[$plugin]['column1'] = <<<EOT
 <tbody class="sortable" title="_(Emby Streams)_">
   <tr>
-    <td>
+    <td id='{$plugin}-dashboard-card'>
       <span class='tile-header'>
         <span class='tile-header-left'>
           <img src="/plugins/embystreams/emby.png" class="emby-icon-img">
-          
           <div class='section'>
             <h3 class='tile-header-main'>_(Emby Streams)_</h3>
             <span id="es_count_container">
@@ -96,7 +90,6 @@ $mytiles[$plugin]['column1'] = <<<EOT
             </span>
           </div>
         </span>
-        
         <span class='tile-header-right'>
            <span class='tile-header-right-controls'>
               <a href="{$emby_url}" target="_blank" title="_(Open Emby WebUI)_">
@@ -129,45 +122,40 @@ $mytiles[$plugin]['column1'] = <<<EOT
   </tr>
 </tbody>
 EOT;
+
+// COMPATIBILITY BLOCK (Unraid 7.2 Check)
+$isResponsiveWebgui = version_compare(parse_ini_file('/etc/unraid-version')['version'] ?? "", '7.2', '>=');
+if ( ! $isResponsiveWebgui) {
+    $mytiles[$plugin]["column1"] .= "<script>console.log('EmbyStreams: Legacy Mode Active');</script>";
+}
 ?>
 
 <script>
     var embyPollInterval = <?=$poll_interval;?>;
     var embyCsrfToken = "<?=htmlspecialchars($csrf_token, ENT_QUOTES, 'UTF-8');?>";
     var embyLastUpdate = 0;
-    var embyMinInterval = 1000; // Minimum 1 second between requests
+    var embyMinInterval = 1000;
     
     function updateEmbyDashboard() {
-        // Client-side rate limiting
         var now = Date.now();
-        if (now - embyLastUpdate < embyMinInterval) {
-            return;
-        }
+        if (now - embyLastUpdate < embyMinInterval) return;
         embyLastUpdate = now;
         
         $.ajax({
             url: "/plugins/embystreams/embystreams_api.php",
             method: "GET",
-            headers: {
-                "X-CSRF-Token": embyCsrfToken
-            },
+            headers: { "X-CSRF-Token": embyCsrfToken },
             timeout: 5000,
             success: function(data) {
                 if (data) {
-                    // 1. Update list
                     $("#embystreams_streams").html(data);
-                    
-                    // 2. Update count
                     var count = $("#embystreams_streams .es-row").length;
                     if(data.indexOf("No active streams") !== -1) { count = 0; }
                     $("#embystreams_count").text(count);
                 }
             },
             error: function(xhr, status, error) {
-                console.error("Emby Streams Error:", status, error);
-                $("#embystreams_streams").html(
-                    "<div style='padding:15px; text-align:center; color:#d44;'>_(Connection Error)_</div>"
-                );
+                $("#embystreams_streams").html("<div style='padding:15px; text-align:center; color:#d44;'>_(Connection Error)_</div>");
             }
         });
     }
