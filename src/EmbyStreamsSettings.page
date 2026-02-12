@@ -7,12 +7,12 @@ Icon="emby.png"
     if (session_status() === PHP_SESSION_NONE) {
         session_start();
     }
-    
+
     // Generate CSRF token if not exists
     if (empty($_SESSION['embystreams_csrf'])) {
         $_SESSION['embystreams_csrf'] = bin2hex(random_bytes(32));
     }
-    
+
     $plugin = "embystreams";
     $translations = file_exists("$docroot/webGui/include/Translations.php");
 ?>
@@ -69,67 +69,54 @@ $csrf_token = $_SESSION['embystreams_csrf'];
 <form markdown="1" name="embystreams_settings" id="embystreams_settings" method="POST" action="/update.php" target="progressFrame" onsubmit="return validateEmbySettings();">
 <input type="hidden" name="#file" value="embystreams/embystreams.cfg" />
 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token, ENT_QUOTES, 'UTF-8'); ?>" />
+<input type="hidden" name="#section" value="embystreams" />
 
-<div>
-    _(Emby Host IP)_:
-    <input type="text" 
-           name="HOST" 
-           id="emby_host"
-           value="<?php echo htmlspecialchars($cfg['HOST'], ENT_QUOTES, 'UTF-8'); ?>" 
-           placeholder="192.168.1.50" 
-           required 
-           pattern="^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$|^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$"
-           title="Enter a valid IP address or hostname"
-           style="width: 200px;">
-    
-    _(Port)_:
-    <input type="number" 
-           name="PORT" 
-           id="emby_port"
-           value="<?php echo (int)$cfg['PORT']; ?>" 
-           placeholder="8096" 
-           min="1" 
-           max="65535" 
-           required
-           style="width: 80px;">
-</div>
+_(Emby Host IP)_:
+: <input type="text" name="HOST" id="emby_host" value="<?php echo htmlspecialchars($cfg['HOST'], ENT_QUOTES, 'UTF-8'); ?>" placeholder="192.168.1.50" required pattern="^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$|^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$" title="Enter a valid IP address or hostname" style="width:200px;">
 
-<div>
-    _(Use HTTPS)_:
-    <input type="radio" name="USE_HTTPS" id="USE_HTTPS_ON" value="1" <?php echo($cfg['USE_HTTPS'] === "1" ? "checked" : ""); ?>/>_(On)_
-    <input type="radio" name="USE_HTTPS" id="USE_HTTPS_OFF" value="0" <?php echo($cfg['USE_HTTPS'] === "0" ? "checked" : ""); ?>/>_(Off)_
-    <br>
-    <span class="desc">_(Enable if using HTTPS/SSL for Emby server)_</span>
-</div>
+> _(IP address or hostname of your Emby server (e.g. 192.168.1.50 or my-server.local))_
 
-<div>
-    _(API Key)_:
-    <input type="password" 
-           name="API_KEY" 
-           id="emby_api_key"
-           value="<?php echo htmlspecialchars($cfg['API_KEY'], ENT_QUOTES, 'UTF-8'); ?>" 
-           pattern="[a-zA-Z0-9]{32,}"
-           title="API key should be at least 32 alphanumeric characters"
-           style="width: 300px;">
-    <br>
-    <span class="desc">_(Generate this in Emby Dashboard > Advanced > API Keys)_</span>
-</div>
+_(Port)_:
+: <input type="number" name="PORT" id="emby_port" value="<?php echo (int)$cfg['PORT']; ?>" placeholder="8096" min="1" max="65535" required style="width:80px;">
 
-<div>
-    _(Refresh Interval)_:
-    <input type="number" 
-           name="POLL_INTERVAL" 
-           id="emby_poll"
-           value="<?php echo (int)$cfg['POLL_INTERVAL']; ?>" 
-           min="1" 
-           max="60" 
-           required
-           style="width: 50px;"> _(seconds)_
-    <br>
-    <span class="desc">_(Minimum: 1 second, Maximum: 60 seconds)_</span>
-</div>
+> _(Port number for the Emby server (default: 8096). Valid range: 1-65535)_
 
-<input type="submit" value="SAVE">
+_(Use HTTPS)_:
+: <select name="USE_HTTPS" id="USE_HTTPS">
+  <option value="0" <?php echo($cfg['USE_HTTPS'] === "0" ? "selected" : ""); ?>>_(No)_</option>
+  <option value="1" <?php echo($cfg['USE_HTTPS'] === "1" ? "selected" : ""); ?>>_(Yes)_</option>
+  </select>
+
+> _(Enable if your Emby server uses HTTPS/SSL connections)_
+
+_(API Key)_:
+: <input type="password" name="API_KEY" id="emby_api_key" value="<?php echo htmlspecialchars($cfg['API_KEY'], ENT_QUOTES, 'UTF-8'); ?>" pattern="[a-zA-Z0-9]{32,}" title="API key should be at least 32 alphanumeric characters" style="width:300px;">
+
+> _(Generate this in Emby Dashboard > Advanced > API Keys)_
+
+_(Refresh Interval)_:
+: <input type="number" name="POLL_INTERVAL" id="emby_poll" value="<?php echo (int)$cfg['POLL_INTERVAL']; ?>" min="1" max="60" required style="width:50px;"> _(seconds)_
+
+> _(How often to poll for active streams. Minimum: 1 second, Maximum: 60 seconds)_
+
+_(Show Dashboard Widget)_:
+: <select name="DISPLAY_WIDGET">
+  <option value="1" <?php echo($cfg['DISPLAY_WIDGET'] === "1" ? "selected" : ""); ?>>_(Yes)_</option>
+  <option value="0" <?php echo($cfg['DISPLAY_WIDGET'] === "0" ? "selected" : ""); ?>>_(No)_</option>
+  </select>
+
+> _(Show the Emby Streams widget on the Unraid dashboard)_
+
+_(Show Navigation Tab)_:
+: <select name="DISPLAY_NAV">
+  <option value="1" <?php echo($cfg['DISPLAY_NAV'] === "1" ? "selected" : ""); ?>>_(Yes)_</option>
+  <option value="0" <?php echo($cfg['DISPLAY_NAV'] === "0" ? "selected" : ""); ?>>_(No)_</option>
+  </select>
+
+> _(Show the Emby Streams tab in the main navigation)_
+
+&nbsp;
+: <input type="submit" value="_(Apply)_"><input type="button" value="_(Done)_" onclick="done();">
 
 </form>
 
@@ -139,34 +126,34 @@ function validateEmbySettings() {
     var port = parseInt(document.getElementById('emby_port').value);
     var apiKey = document.getElementById('emby_api_key').value.trim();
     var pollInterval = parseInt(document.getElementById('emby_poll').value);
-    
+
     // Validate host (IP or hostname)
     var ipPattern = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
     var hostnamePattern = /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
-    
+
     if (!ipPattern.test(host) && !hostnamePattern.test(host)) {
         alert('Please enter a valid IP address or hostname');
         return false;
     }
-    
+
     // Validate port range
     if (port < 1 || port > 65535) {
         alert('Port must be between 1 and 65535');
         return false;
     }
-    
+
     // Validate API key format (basic check)
     if (apiKey && apiKey.length < 32) {
         alert('API key appears to be too short. Please verify it is correct.');
         return false;
     }
-    
+
     // Validate poll interval
     if (pollInterval < 1 || pollInterval > 60) {
         alert('Refresh interval must be between 1 and 60 seconds');
         return false;
     }
-    
+
     return true;
 }
 </script>
