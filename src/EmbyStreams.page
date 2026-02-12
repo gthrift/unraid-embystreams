@@ -41,6 +41,7 @@ Tag="film"
         display: flex; 
         align-items: center; 
         width: 100%;
+        max-width: 100%;
         box-sizing: border-box;
     }
     
@@ -55,7 +56,7 @@ Tag="film"
     /* Using !important to force alignment over any Unraid defaults */
     
     .es-name { 
-        width: 40% !important; 
+        width: 45% !important; 
     }
 
     .es-device { 
@@ -69,7 +70,7 @@ Tag="film"
     }
 
     .es-state { 
-        width: 20% !important; 
+        width: 15% !important; 
         text-align: right !important; 
     }
 
