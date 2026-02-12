@@ -7,7 +7,7 @@
 <!ENTITY gitURL    "https://raw.githubusercontent.com/gthrift/unraid-embystreams/main">
 <!ENTITY pluginURL "&gitURL;/embystreams.plg">
 <!ENTITY archive   "&gitURL;/archive/&name;-&version;.txz">
-<!ENTITY sha256    "4227beb8bc1cf04726e365f17cb30275fa77cff74dfbcec7a1eaa4092ee54ad8">
+<!ENTITY sha256    "2c0f871a5f8c7a465af259ab872cdc1fdb4f9b63be8af46dbebf6475ecf117c0">
 <!ENTITY emhttp    "/usr/local/emhttp/plugins/&name;">
 <!ENTITY plgPATH   "/boot/config/plugins/&name;">
 ]>
@@ -23,6 +23,9 @@
         icon="emby.png">
 
 <CHANGES>
+###2026.02.01
+- Bug fixes and improvements
+
 ###2026.02.01
 - Bug fixes and improvements
 
