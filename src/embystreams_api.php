@@ -261,7 +261,7 @@ foreach ($sessions as $session) {
 // =============================================================================
 
 if (empty($active_streams)) {
-    echo "<div style='padding:15px; text-align:center; opacity:0.6; font-style:italic;'>_(No active streams)_</div>";
+    echo "<div style='padding:15px; text-align:center; opacity:0.6; font-style:italic;'>No active streams</div>";
     exit;
 }
 
