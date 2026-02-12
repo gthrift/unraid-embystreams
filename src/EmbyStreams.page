@@ -104,7 +104,7 @@ Tag="film"
 
 <?php
 $mytiles[$plugin]['column1'] = <<<EOT
-<tbody class="sortable" title="_(Emby Streams)_">
+<tbody class="sortable" title="Emby Streams">
   <tr>
     <td>
       <div class='tile-header' id='{$plugin}-dashboard-card'>
@@ -112,9 +112,9 @@ $mytiles[$plugin]['column1'] = <<<EOT
           <img src="/plugins/embystreams/emby.png" class="emby-icon-img icon">
           <div class='section'>
             <h3 class='tile-header-main' id='{$plugin}-dashboard-title'>
-              _(Emby Streams)_
+              Emby Streams
             </h3>
-            <span id="es_count_container"><span id="embystreams_count">0</span> _(Active Stream(s))_</span>
+            <span id="es_count_container"><span id="embystreams_count">0</span> Active Stream(s)</span>
           </div>
         </div>
         <div class='tile-header-right'>
