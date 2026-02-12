@@ -26,52 +26,49 @@ Tag="film"
         object-fit: contain;
     }
 
-    /* 2. Container Constraint - The Nuclear Option */
-    /* We force the table cell to never exceed the column width */
+    /* 2. Container Constraint */
     #embystreams-dashboard-card {
-        table-layout: fixed;
         width: 100%;
     }
 
-    /* 3. Stream List Container */
-    #embystreams_streams {
-        width: 100%;
-        overflow-x: hidden; /* Hide overflow to prevent scrollbars in widget */
-    }
-
-    /* 4. Row Styling */
+    /* 3. Row Styling */
     .es-row { 
         display: flex;
         align-items: center;
         width: 100%;
         border-bottom: 1px solid rgba(255,255,255,0.05);
         padding: 4px 0;
-        /* CRITICAL: Ensure the row itself doesn't expand */
         box-sizing: border-box;
     }
     .es-row:last-child { border-bottom: none; }
 
-    /* 5. Text Constraint - THE FIX */
+    /* 4. Text Truncation Base */
     .es-row > span {
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-        /* CRITICAL: min-width: 0 allows flex items to shrink below their content size */
-        min-width: 0; 
     }
 
-    /* --- COLUMN SIZING --- */
-    /* We use percentages that sum to 100% */
-    .es-name   { width: 40%; }
-    .es-device { width: 25%; text-align: center; }
-    .es-user   { width: 15%; text-align: center; }
-    .es-state  { width: 20%; text-align: right; }
+    /* 5. FLEX COLUMN SIZING (The Fix) */
+    
+    /* NAME: flex: 1 means "take whatever space is left"
+       min-width: 0 means "you can shrink smaller than your text" */
+    .es-name { 
+        flex: 1 1 auto; 
+        min-width: 0; 
+        padding-right: 10px;
+    }
+
+    /* OTHERS: Fixed flex basis ensures they retain their size */
+    .es-device { flex: 0 0 25%; text-align: center; }
+    .es-user   { flex: 0 0 15%; text-align: center; }
+    .es-state  { flex: 0 0 20%; text-align: right; }
 
     /* --- MOBILE OVERRIDES --- */
     @media only screen and (max-width: 600px) {
         .es-device, .es-user { display: none !important; }
-        .es-name { flex: 1; width: auto; }
-        .es-state { width: auto; margin-left: auto; padding-left: 10px; }
+        .es-name { flex: 1; }
+        .es-state { flex: 0 0 auto; margin-left: auto; padding-left: 10px; }
     }
 </style>
 
@@ -123,7 +120,7 @@ $mytiles[$plugin]['column1'] = <<<EOT
 </tbody>
 EOT;
 
-// COMPATIBILITY BLOCK (Unraid 7.2 Check)
+// COMPATIBILITY BLOCK
 $isResponsiveWebgui = version_compare(parse_ini_file('/etc/unraid-version')['version'] ?? "", '7.2', '>=');
 if ( ! $isResponsiveWebgui) {
     $mytiles[$plugin]["column1"] .= "<script>console.log('EmbyStreams: Legacy Mode Active');</script>";
