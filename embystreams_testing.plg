@@ -4,7 +4,7 @@
 <!ENTITY author    "gthrift">
 <!ENTITY version   "2026.02.01">
 <!ENTITY launch    "Settings/EmbyStreamsSettings">
-<!ENTITY gitURL    "https://raw.githubusercontent.com/gthrift/unraid-embystreams/main">
+<!ENTITY gitURL    "https://raw.githubusercontent.com/gthrift/unraid-embystreams/2026.02.03">
 <!ENTITY pluginURL "&gitURL;/embystreams_testing.plg">
 <!ENTITY emhttp    "/usr/local/emhttp/plugins/&name;">
 <!ENTITY plgPATH   "/boot/config/plugins/&name;">
