@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "embystreams">
 <!ENTITY author    "gthrift">
-<!ENTITY version   "2026.01.06">
+<!ENTITY version   "2026.02.01">
 <!ENTITY launch    "Settings/EmbyStreamsSettings">
 <!ENTITY gitURL    "https://raw.githubusercontent.com/gthrift/unraid-embystreams/master">
 <!ENTITY pluginURL "&gitURL;/embystreams.plg">
@@ -21,6 +21,9 @@
         icon="emby.png">
 
 <CHANGES>
+###2026.02.01
+- Bug fixes and improvements
+
 ###2026.01.06
 - Initial release.
 </CHANGES>
