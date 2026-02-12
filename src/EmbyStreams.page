@@ -29,6 +29,7 @@ Tag="film"
     /* 2. Container Constraint */
     #embystreams-dashboard-card {
         width: 100%;
+        max-width: 100%;
     }
 
     /* 3. Row Styling */
