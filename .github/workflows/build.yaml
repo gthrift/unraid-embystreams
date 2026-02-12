@@ -77,6 +77,9 @@ jobs:
             exit 1
           fi
           
+          echo "Files included in package:"
+          find "${PLUGIN_DIR}" -type f
+          
           # --- CREATE ARCHIVE ---
           ARCHIVE_NAME="${PLUGIN_NAME}-${VERSION}.txz"
           echo "Creating archive: ${ARCHIVE_NAME}"
@@ -94,9 +97,12 @@ jobs:
           echo "ARCHIVE_NAME=${ARCHIVE_NAME}" >> $GITHUB_ENV
           echo "SHA256_HASH=${SHA256_HASH}" >> $GITHUB_ENV
           
+          echo "Archive created: ${ARCHIVE_NAME}"
+          echo "SHA256: ${SHA256_HASH}"
+          
           rm -rf "${TEMP_DIR}"
       
-      - name: Update plg file with new version, MD5, and release notes
+      - name: Update plg file with new version, SHA256, and release notes
         run: |
           VERSION="${{ steps.version.outputs.VERSION }}"
           RELEASE_NOTES="${{ github.event.inputs.release_notes }}"
@@ -108,8 +114,22 @@ jobs:
           # Update version in plg file
           sed -i 's/<!ENTITY version[[:space:]]*"[^"]*"/<!ENTITY version   "'"${VERSION}"'"/' embystreams.plg
 
-          # Update SHA256 in plg file
-          sed -i 's/<!ENTITY sha256[[:space:]]*"[^"]*"/<!ENTITY sha256    "'"${SHA256_HASH}"'"/' embystreams.plg
+          # Update SHA256 - handle both existing and missing entity
+          if grep -q "<!ENTITY sha256" embystreams.plg; then
+              # Update existing sha256 entity
+              sed -i 's/<!ENTITY sha256[[:space:]]*"[^"]*"/<!ENTITY sha256    "'"${SHA256_HASH}"'"/' embystreams.plg
+              echo "  Updated existing SHA256 entity"
+          else
+              # Insert new sha256 entity after archive entity
+              sed -i '/<!ENTITY archive/a <!ENTITY sha256    "'"${SHA256_HASH}"'">' embystreams.plg
+              echo "  Inserted new SHA256 entity"
+          fi
+          
+          # Verify the update worked
+          if ! grep -q "${SHA256_HASH}" embystreams.plg; then
+              echo "ERROR: SHA256 hash not found in PLG file after update!"
+              exit 1
+          fi
           
           # Add release notes if provided (for manual triggers only)
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${RELEASE_NOTES}" ]; then
@@ -141,8 +161,63 @@ jobs:
           fi
           
           echo ""
-          echo "Updated plg file:"
-          grep -A 5 "<CHANGES>" embystreams.plg | head -10
+          echo "Updated plg file (DOCTYPE section):"
+          sed -n '/<!DOCTYPE PLUGIN/,/]>/p' embystreams.plg
+          
+          echo ""
+          echo "Updated plg file (CHANGES section):"
+          grep -A 10 "<CHANGES>" embystreams.plg | head -15
+      
+      - name: Validate PLG file
+        run: |
+          echo "Validating PLG XML syntax..."
+          
+          # Check if xmllint is available
+          if command -v xmllint &> /dev/null; then
+              xmllint --noout embystreams.plg
+              echo "✓ XML syntax is valid"
+              
+              # Check entity resolution
+              echo ""
+              echo "Entity resolution test:"
+              xmllint --noent embystreams.plg | grep -A 2 "<SHA256>"
+          else
+              echo "xmllint not available, skipping XML validation"
+          fi
+          
+          # Verify entities are present
+          echo ""
+          echo "Checking required entities..."
+          
+          MISSING_ENTITIES=""
+          
+          if ! grep -q "<!ENTITY version" embystreams.plg; then
+              MISSING_ENTITIES="${MISSING_ENTITIES}version "
+          fi
+          
+          if ! grep -q "<!ENTITY sha256" embystreams.plg; then
+              MISSING_ENTITIES="${MISSING_ENTITIES}sha256 "
+          fi
+          
+          if ! grep -q "<!ENTITY archive" embystreams.plg; then
+              MISSING_ENTITIES="${MISSING_ENTITIES}archive "
+          fi
+          
+          if [ -n "$MISSING_ENTITIES" ]; then
+              echo "ERROR: Missing entities: ${MISSING_ENTITIES}"
+              exit 1
+          fi
+          
+          echo "✓ All required entities present"
+          
+          # Check for duplicate closing tags
+          PLUGIN_CLOSE_COUNT=$(grep -c "</PLUGIN>" embystreams.plg)
+          if [ "$PLUGIN_CLOSE_COUNT" -gt 1 ]; then
+              echo "WARNING: Found ${PLUGIN_CLOSE_COUNT} </PLUGIN> tags (should be 1)"
+              echo "This may cause installation issues"
+          else
+              echo "✓ No duplicate closing tags"
+          fi
       
       - name: Commit and push changes
         run: |
@@ -175,5 +250,11 @@ jobs:
             ```
             https://raw.githubusercontent.com/gthrift/unraid-embystreams/main/embystreams.plg
             ```
+            
+            ### Files in Package
+            - EmbyStreams.page
+            - EmbyStreamsSettings.page
+            - embystreams_api.php
+            - emby.png
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
