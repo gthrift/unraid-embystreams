@@ -363,7 +363,7 @@ foreach ($active_streams as $s) {
         'Transcoding';
     
     // Build state tooltip (includes time and play method)
-    $stateTooltip = htmlspecialchars("$status_text | $timeDisplay | $play_method", ENT_QUOTES, 'UTF-8');
+    $stateTooltip = htmlspecialchars("$timeDisplay", ENT_QUOTES, 'UTF-8');
     
     // =============================================================================
     // OUTPUT HTML
