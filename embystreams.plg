@@ -55,7 +55,7 @@ A plugin to create a dashboard widget that shows your active Emby streams
                 if [ ! -f "&plgPATH;/embystreams.cfg" ]; then
                     echo "POLL_INTERVAL='5'" > "&plgPATH;/embystreams.cfg"
                     echo "WIDGET_ICON='streams'" >> "&plgPATH;/embystreams.cfg"
-                    echo "WIDGET_TITLE='Active Streams'" >> "&plgPATH;/embystreams.cfg"
+                    echo "WIDGET_TITLE='Emby Streams'" >> "&plgPATH;/embystreams.cfg"
                 fi
                 
                 # Create empty servers config if missing
