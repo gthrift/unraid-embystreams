@@ -44,7 +44,7 @@ Tag="film"
     /* Prevent widget from growing beyond container */
     #embystreams-dashboard-card { 
         width: 100%;
-        max-width: 0;
+        max-width: 100%;
         overflow: hidden;
     }
     
